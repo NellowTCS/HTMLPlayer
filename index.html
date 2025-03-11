@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <title>HTMLPlayer</title>
   <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="manifest.json">
   <!-- Include jsmediatags for ID3 parsing -->
   <script src="https://unpkg.com/jsmediatags@3.9.7/dist/jsmediatags.min.js"></script>
   <style>
@@ -384,6 +386,7 @@
       <!-- Combined Button labeled "Add Music" -->
       <button id="uploadBtn">Add Music</button>
       <input type="file" id="fileInput" accept="audio/mp3, audio/ogg, audio/m4a" multiple>
+      <button id="install-button" hidden>Install App</button> <!-- New Install Button -->
 
     </div>
     
@@ -951,6 +954,46 @@
       initPlaylists();
       restoreDirectory();
     }).catch(err => { console.error(err); });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js");
+      }
+  
+      let deferredPrompt;
+      const installButton = document.getElementById("install-button");
+  
+      window.addEventListener("beforeinstallprompt", (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installButton.hidden = false;
+      });
+  
+      installButton.addEventListener("click", async () => {
+        const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+        
+        if (isStandalone) {
+          console.log("App is already installed");
+          return;
+        }
+  
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          if (outcome === "accepted") {
+            console.log("User accepted install prompt");
+          } else {
+            console.log("User dismissed install prompt");
+          }
+        } else {
+          if (window.matchMedia("(display-mode: browser)").matches) {
+            window.location.assign("chrome://apps/");
+          }
+        }
+      });
+    });
   </script>
 </body>
 </html>
