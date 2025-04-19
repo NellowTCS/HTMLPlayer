@@ -24,7 +24,7 @@ This is an HTML5 audio player that supports playlists, ID3 tag parsing for album
 
 ## Setup
 1. Open the GitHub Pages in your browser or download the Release for better offline usage
-2. (only if you're offline) Open `HTMLPlayer.html` in a browser that supports the `showDirectoryPicker` API (e.g., recent versions of Chrome) and/or the `File API` (literally almost every browser).
+2. (only if you're offline) Open `HTMLPlayer.html` in a browser that supports the `showDirectoryPicker` API (e.g., recent versions of Chrome) and/or the `File API` (literally almost every browser). The offline version can be bookmarked and can use favicons, and the favicon is included in the zip.
 3. Start adding music and creating playlists!
 
 ## Usage
