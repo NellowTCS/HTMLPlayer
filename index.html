@@ -36,7 +36,7 @@
     #playlistPanel {
       width: 280px;
       background: #1c1c1c;
-      padding: 20px;
+      padding: 15px;
       border-right: 1px solid #333;
       overflow-y: auto;
       border-top-left-radius: 10px;
@@ -44,16 +44,16 @@
     }
     #playlistPanel h2 {
       font-size: 20px;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       border-bottom: 1px solid #333;
-      padding-bottom: 10px;
+      padding-bottom: 5px;
     }
-    #playlistPanel ul { list-style: none; margin-bottom: 20px; }
+    #playlistPanel ul { list-style: none; margin-bottom: 15px; }
     #playlistPanel li {
       display: flex;
       align-items: center;
-      padding: 8px 10px;
-      margin-bottom: 10px;
+      padding: 6px 8px;
+      margin-bottom: 5px;
       border-radius: 8px;
       cursor: pointer;
       transition: background 0.2s;
@@ -63,7 +63,8 @@
     #playlistPanel li.active { background: #333; }
     #playlistPanel li img {
       width: 40px; height: 40px;
-      border-radius: 6px; margin-right: 10px;
+      border-radius: 6px;
+      margin-right: 10px;
       object-fit: cover;
     }
     /* Checkbox for bulk delete playlists */
@@ -82,24 +83,24 @@
     }
     #newPlaylistName {
       width: calc(100% - 20px);
-      padding: 8px 10px;
+      padding: 6px 8px;
       border: none;
       border-radius: 6px;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       background: #333;
       color: #f1f1f1;
     }
     #addPlaylist, #setPlaylistArt, #togglePlaylistBulk {
       width: 100%;
-      padding: 10px;
+      padding: 8px;
       border: none;
       background: #2196F3;
       color: #fff;
-      font-size: 16px;
+      font-size: 14px;
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.2s;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     #addPlaylist:hover, #setPlaylistArt:hover, #togglePlaylistBulk:hover {
       background: #1976D2;
@@ -107,11 +108,11 @@
     /* Bulk controls container (playlists) */
     #playlistBulkControls {
       display: none;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     #playlistBulkControls button {
       width: 48%;
-      padding: 8px;
+      padding: 6px;
       margin-right: 4%;
       border: none;
       background: #e53935;
@@ -127,15 +128,16 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      padding: 20px;
+      padding: 15px;
+      padding-bottom: 120px;
       position: relative;
       border-top-right-radius: 10px;
       border-bottom-right-radius: 10px;
     }
     /* Toggle Bulk Delete for Tracks */
     #toggleTrackBulk {
-      width: 200px;
-      padding: 8px;
+      width: 180px;
+      padding: 6px;
       border: none;
       background: #2196F3;
       color: #fff;
@@ -143,19 +145,19 @@
       border-radius: 6px;
       cursor: pointer;
       transition: background 0.2s;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       align-self: center;
     }
     #toggleTrackBulk:hover { background: #1976D2; }
     /* Bulk controls container (tracks) */
     #trackBulkControls {
       display: none;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
       align-self: center;
     }
     #trackBulkControls button {
       width: 48%;
-      padding: 8px;
+      padding: 6px;
       margin-right: 4%;
       border: none;
       background: #e53935;
@@ -166,29 +168,19 @@
       transition: background 0.2s;
     }
     #trackBulkControls button:hover { background: #c62828; }
-    /* Current Track Art (Bottom Right) */
-    #currentTrackArt {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 150px;
-      height: 150px;
-      border-radius: 10px;
-      background: #333;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-    }
-    #currentTrackArt img {
-      width: 100%; height: 100%; object-fit: cover;
-    }
     /* Track List */
-    #trackList { flex: 1; overflow-y: auto; margin-bottom: 15px; padding-right: 10px; }
+    #trackList {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      padding-right: 5px;
+    }
     #tracks { list-style: none; }
     #tracks li {
       display: flex;
       align-items: center;
-      padding: 10px;
-      margin-bottom: 10px;
+      padding: 8px;
+      margin-bottom: 5px;
       background: #1e1e1e;
       border-radius: 8px;
       cursor: pointer;
@@ -197,9 +189,10 @@
     }
     #tracks li:hover, #tracks li.active { background: #2a2a2a; }
     #tracks li img {
-      width: 50px; height: 50px;
+      width: 40px; height: 40px;
       border-radius: 6px;
-      object-fit: cover; margin-right: 10px;
+      object-fit: cover;
+      margin-right: 10px;
     }
     .track-info { flex: 1; font-size: 16px; }
     /* Checkbox for bulk delete tracks */
@@ -215,43 +208,105 @@
     }
     /* Rating buttons */
     .rating-btn {
-      background: none; border: none;
-      cursor: pointer; margin-left: 5px;
-      width: 24px; height: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      margin-left: 5px;
+      width: 24px;
+      height: 24px;
       transition: transform 0.2s;
     }
     .rating-btn:hover { transform: scale(1.2); }
     .rating-btn svg { width: 100%; height: 100%; fill: #f1f1f1; }
+    /* Controls Container to Group Playback and Volume */
+    #playerControls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center; /* Center the innerControls */
+      background: #1c1c1c;
+      padding: 8px 0;
+      z-index: 3;
+    }
+    /* Inner Controls to Keep Centered */
+    #innerControls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1; /* Take up available space for proper centering */
+      max-width: calc(100% - 140px); /* Ensure it doesn't overlap with currentTrackArt */
+    }
+    /* Current Track Art (Inside Controls, Aligned with Playlists) */
+    #currentTrackArt {
+      position: absolute;
+      left: 20px; /* Match playlistPanel padding */
+      top: 50%;
+      transform: translateY(-50%);
+      width: 100px;
+      height: 100px;
+      border-radius: 10px;
+      background: #1c1c1c; /* Match playlistPanel background */
+      border: 1px solid #333; /* Match playlistPanel border */
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      z-index: 2;
+    }
+    #currentTrackArt img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
     /* Controls */
     #controls {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 15px;
-      margin-bottom: 10px;
+      gap: clamp(15px, 2vw, 25px); /* Increased and variable gap */
+      margin-bottom: 5px;
     }
     #controls button {
       background: none;
       border: none;
       cursor: pointer;
-      padding: 10px;
+      padding: 8px;
       border-radius: 50%;
       transition: background 0.2s;
+      position: relative; /* For positioning indicator dots */
     }
     #controls button:hover { background: rgba(255,255,255,0.1); }
     .icon { width: 32px; height: 32px; fill: #fff; }
     /* Toggle Buttons for Shuffle and Repeat */
-    .toggle-btn.active {
-      background: rgba(33,150,243,0.3);
-      border-radius: 50%;
+    .toggle-btn.active { background: rgba(33,150,243,0.3); }
+    /* Ensure shuffle and repeat button icons are white */
+    #shuffleBtn .icon, #repeatBtn .icon {
+      fill: #fff !important;
+      stroke: #fff !important;
     }
+    #shuffleBtn.active .icon, #repeatBtn.active .icon {
+      fill: #fff !important;
+      stroke: #fff !important;
+    }
+    /* Indicator Dot for Active State */
+    .indicator-dot {
+      position: absolute;
+      bottom: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      display: none;
+    }
+    .toggle-btn.active .indicator-dot { display: block; }
     /* Progress Bar */
     #progressContainer {
-      width: 90%;
+      width: 70vw; /* Variable width based on viewport */
+      max-width: 800px; /* Increased cap */
       height: 8px;
       background: #333;
       border-radius: 4px;
-      margin: 0 auto 10px auto;
+      margin: 0 auto 5px auto;
       cursor: pointer;
       position: relative;
     }
@@ -266,15 +321,16 @@
     #timeDisplay {
       text-align: center;
       font-size: 14px;
-      margin-bottom: 10px;
+      margin-bottom: 5px;
     }
     /* Volume Slider */
     #volumeContainer {
-      width: 90%;
-      margin: 0 auto;
+      width: 30vw; /* Variable width based on viewport */
+      max-width: 300px; /* Increased cap */
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      z-index: 3;
     }
     #volumeSlider { width: 100%; }
     /* Hidden file input elements */
@@ -282,22 +338,23 @@
     /* Combined Upload/Directory Button - now labeled "Add Music" */
     #uploadBtn {
       position: absolute;
-      top: 20px;
-      right: 20px;
+      top: 15px;
+      right: 15px;
       background: #2196F3;
       border: none;
-      padding: 10px 15px;
+      padding: 8px 12px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 14px;
       transition: background 0.2s;
+      z-index: 2;
     }
     #uploadBtn:hover { background: #1976D2; }
     /* Progress Popups */
     #addingPopup, #processingPopup {
       position: fixed;
       left: 20px;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0,0,0,0.7);
       color: #fff;
       padding: 10px 15px;
       border-radius: 5px;
@@ -307,6 +364,147 @@
     }
     #addingPopup { bottom: 60px; }
     #processingPopup { bottom: 20px; }
+    /* Media Queries for Responsive Design */
+    @media (max-width: 768px) {
+      #playlistPanel {
+        width: 200px;
+        padding: 10px;
+      }
+      #playlistPanel h2 {
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+      }
+      #playlistPanel li {
+        padding: 5px 6px;
+        margin-bottom: 4px;
+      }
+      #newPlaylistName {
+        padding: 5px 6px;
+        margin-bottom: 4px;
+      }
+      #addPlaylist, #setPlaylistArt, #togglePlaylistBulk {
+        padding: 6px;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      #mainPlayer {
+        padding: 10px;
+        padding-bottom: 100px;
+      }
+      #trackList {
+        margin-bottom: 8px;
+        padding-right: 4px;
+      }
+      #tracks li {
+        padding: 6px;
+        margin-bottom: 4px;
+      }
+      #tracks li img {
+        width: 36px;
+        height: 36px;
+      }
+      #playerControls {
+        padding: 6px 0;
+      }
+      #currentTrackArt {
+        width: 80px;
+        height: 80px;
+        left: 15px; /* Match reduced playlistPanel padding */
+      }
+      #innerControls { 
+        gap: 6px; 
+        max-width: calc(100% - 110px); /* Adjust for smaller art */
+      }
+      #controls {
+        gap: clamp(12px, 1.8vw, 20px); /* Adjusted variable gap */
+        margin-bottom: 4px;
+      }
+      #progressContainer {
+        width: 80vw; /* Adjusted variable width */
+        max-width: 500px; /* Adjusted cap */
+        margin-bottom: 4px;
+      }
+      #volumeContainer {
+        width: 35vw; /* Adjusted variable width */
+        max-width: 250px; /* Adjusted cap */
+        gap: 6px;
+      }
+      .icon { width: 28px; height: 28px; }
+      #toggleTrackBulk {
+        width: 160px;
+        padding: 5px;
+      }
+    }
+    @media (max-width: 480px) {
+      #playlistPanel {
+        width: 150px;
+        padding: 8px;
+      }
+      #playlistPanel h2 {
+        margin-bottom: 6px;
+        padding-bottom: 3px;
+      }
+      #playlistPanel li {
+        padding: 4px 5px;
+        margin-bottom: 3px;
+      }
+      #newPlaylistName {
+        padding: 4px 5px;
+        margin-bottom: 3px;
+      }
+      #addPlaylist, #setPlaylistArt, #togglePlaylistBulk {
+        padding: 5px;
+        font-size: 12px;
+        margin-bottom: 3px;
+      }
+      #mainPlayer {
+        padding: 8px;
+        padding-bottom: 80px;
+      }
+      #trackList {
+        margin-bottom: 6px;
+        padding-right: 3px;
+      }
+      #tracks li {
+        padding: 5px;
+        margin-bottom: 3px;
+      }
+      #tracks li img {
+        width: 32px;
+        height: 32px;
+      }
+      #playerControls {
+        padding: 5px 0;
+      }
+      #currentTrackArt {
+        width: 60px;
+        height: 60px;
+        left: 10px; /* Match reduced playlistPanel padding */
+      }
+      #innerControls { 
+        gap: 5px; 
+        max-width: calc(100% - 80px); /* Adjust for smaller art */
+      }
+      #controls {
+        gap: clamp(10px, 1.5vw, 15px); /* Adjusted variable gap */
+        margin-bottom: 3px;
+      }
+      #progressContainer {
+        width: 85vw; /* Adjusted variable width */
+        max-width: 350px; /* Adjusted cap */
+        margin-bottom: 3px;
+      }
+      #volumeContainer {
+        width: 40vw; /* Adjusted variable width */
+        max-width: 180px; /* Adjusted cap */
+        gap: 5px;
+      }
+      .icon { width: 24px; height: 24px; }
+      #toggleTrackBulk {
+        width: 140px;
+        padding: 4px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -337,62 +535,72 @@
       <div id="trackList">
         <ul id="tracks"></ul>
       </div>
-      <div id="controls">
-        <button id="shuffleBtn" title="Shuffle" class="toggle-btn">
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M4,4 L10,4 L14,10 L10,16 L4,16" fill="none" stroke="currentColor" stroke-width="2"/>
-            <polyline points="14,4 20,4 20,10" fill="none" stroke="currentColor" stroke-width="2"/>
-            <polyline points="14,16 20,16 20,20" fill="none" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-        <button id="prevBtn" title="Previous">
-          <svg class="icon" viewBox="0 0 24 24">
-            <polygon points="15,18 9,12 15,6" />
-          </svg>
-        </button>
-        <button id="playPauseBtn" title="Play/Pause">
-          <svg class="icon" id="playIcon" viewBox="0 0 24 24">
-            <polygon points="8,5 19,12 8,19" />
-          </svg>
-          <svg class="icon" id="pauseIcon" viewBox="0 0 24 24" style="display:none;">
-            <rect x="6" y="5" width="4" height="14"/>
-            <rect x="14" y="5" width="4" height="14"/>
-          </svg>
-        </button>
-        <button id="nextBtn" title="Next">
-          <svg class="icon" viewBox="0 0 24 24">
-            <polygon points="9,6 15,12 9,18" />
-          </svg>
-        </button>
-        <button id="repeatBtn" title="Repeat" class="toggle-btn">
-          <svg class="icon" viewBox="0 0 24 24">
-            <path d="M17 1l4 4-4 4M7 23l-4-4 4-4" fill="none" stroke="currentColor" stroke-width="2"/>
-            <path d="M3 11V9a4 4 0 0 1 4-4h10" fill="none" stroke="currentColor" stroke-width="2"/>
-            <path d="M21 13v2a4 4 0 0 1-4 4H7" fill="none" stroke="currentColor" stroke-width="2"/>
-          </svg>
-        </button>
-      </div>
-      <div id="progressContainer">
-        <div id="progress"></div>
-      </div>
-      <div id="timeDisplay">0:00 / 0:00</div>
-      <div id="volumeContainer">
-        <svg class="icon" viewBox="0 0 24 24">
-          <polygon points="5,9 9,9 13,5 13,19 9,15 5,15" />
-        </svg>
-        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+      <!-- Grouped Player Controls -->
+      <div id="playerControls">
+        <!-- Current Track Art (Now Inside Controls) -->
+        <div id="currentTrackArt">
+          <img id="currentArtImg" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzMzMiIC8+PGxpbmUgeDE9IjAiIHkxPSIwIiB4Mj0iMTAwIiB5Mj0iMTAwIiBzdHJva2U9IiNmMWYxZjEiIHN0cm9rZS13aWR0aD0iNSIgLz48bGluZSB4MT0iMTAwIiB5MT0iMCIgeDI9IjAiIHkyPSIxMDAiIHN0cm9rZT0iI2YxZjFmMSIgc3Ryb2tlLXdpZHRoPSI1IiAvPjwvc3ZnPg==" alt="No Art">
+        </div>
+        <!-- Inner Controls -->
+        <div id="innerControls">
+          <div id="controls">
+            <button id="shuffleBtn" title="Shuffle" class="toggle-btn">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M4,4 L10,4 L14,10 L10,16 L4,16" fill="none" stroke="#fff" stroke-width="2"/>
+                <polyline points="14,4 20,4 20,10" fill="none" stroke="#fff" stroke-width="2"/>
+                <polyline points="14,16 20,16 20,20" fill="none" stroke="#fff" stroke-width="2"/>
+              </svg>
+              <svg class="indicator-dot" viewBox="0 0 8 8">
+                <circle cx="4" cy="4" r="4" fill="#2196F3"/>
+              </svg>
+            </button>
+            <button id="prevBtn" title="Previous">
+              <svg class="icon" viewBox="0 0 24 24">
+                <polygon points="15,18 9,12 15,6" />
+              </svg>
+            </button>
+            <button id="playPauseBtn" title="Play/Pause">
+              <svg class="icon" id="playIcon" viewBox="0 0 24 24">
+                <polygon points="8,5 19,12 8,19" />
+              </svg>
+              <svg class="icon" id="pauseIcon" viewBox="0 0 24 24" style="display:none;">
+                <rect x="6" y="5" width="4" height="14"/>
+                <rect x="14" y="5" width="4" height="14"/>
+              </svg>
+            </button>
+            <button id="nextBtn" title="Next">
+              <svg class="icon" viewBox="0 0 24 24">
+                <polygon points="9,6 15,12 9,18" />
+              </svg>
+            </button>
+            <button id="repeatBtn" title="Repeat" class="toggle-btn">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M17 1l4 4-4 4M7 23l-4-4 4-4" fill="none" stroke="#fff" stroke-width="2"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h10" fill="none" stroke="#fff" stroke-width="2"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H7" fill="none" stroke="#fff" stroke-width="2"/>
+              </svg>
+              <svg class="indicator-dot" viewBox="0 0 8 8">
+                <circle cx="4" cy="4" r="4" fill="#2196F3"/>
+              </svg>
+            </button>
+          </div>
+          <div id="progressContainer">
+            <div id="progress"></div>
+          </div>
+          <div id="timeDisplay">0:00 / 0:00</div>
+          <div id="volumeContainer">
+            <svg class="icon" viewBox="0 0 24 24">
+              <polygon points="5,9 9,9 13,5 13,19 9,15 5,15" />
+            </svg>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+          </div>
+        </div>
       </div>
       
       <!-- Combined Button labeled "Add Music" -->
       <button id="uploadBtn">Add Music</button>
       <input type="file" id="fileInput" accept="audio/mp3, audio/ogg, audio/m4a" multiple>
-      <button id="install-button" hidden>Install App</button> <!-- New Install Button -->
-
-    </div>
-    
-    <!-- Current Track Art (Bottom Right) -->
-    <div id="currentTrackArt">
-      <img id="currentArtImg" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNTAiIGZpbGw9IiMzMzMiIC8+PGxpbmUgeDE9IjAiIHkxPSIwIiB4Mj0iMTUwIiB5Mj0iMTUwIiBzdHJva2U9IiNmMWYxZjEiIHN0cm9rZS13aWR0aD0iNSIgLz48bGluZSB4MT0iMTUwIiB5MT0iMCIgeDI9IjAiIHkyPSIxNTAiIHN0cm9rZT0iI2YxZjFmMSIgc3Ryb2tlLXdpZHRoPSI1IiAvPjwvc3ZnPg==" alt="No Art">
+      <button id="install-button" hidden>Install App</button>
     </div>
   </div>
   
@@ -475,7 +683,18 @@
     let selectedTracks = new Set();
     
     /* ---------- UI Initialization ---------- */
-    function initPlaylists() {
+    async function initPlaylists() {
+      // Load settings first, without overwriting
+      isShuffle = (await loadSetting("shuffle")) ?? false;
+      isRepeat = (await loadSetting("repeat")) ?? false;
+      const savedVolume = await loadSetting("volume") ?? 0.5;
+
+      // Update UI after loading settings
+      shuffleBtn.classList.toggle("active", isShuffle);
+      repeatBtn.classList.toggle("active", isRepeat);
+      volumeSlider.value = savedVolume;
+      audio.volume = savedVolume;
+
       loadPlaylists().then((data) => {
         if (data.length === 0) {
           playlists["Default"] = { tracks: [], art: null };
@@ -488,14 +707,18 @@
         renderPlaylistNames();
         loadPlaylist(currentPlaylist);
       });
-      loadSetting("shuffle").then(val => { if(val !== null) { isShuffle = val; shuffleBtn.classList.toggle("active", isShuffle); } });
-      loadSetting("repeat").then(val => { if(val !== null) { isRepeat = val; repeatBtn.classList.toggle("active", isRepeat); } });
+
       restoreDirectory();
     }
     function savePlaylist(name, playlistObj) {
       const transaction = db.transaction(["playlists"], "readwrite");
       const store = transaction.objectStore("playlists");
       store.put({ name, tracks: playlistObj.tracks, art: playlistObj.art || null });
+    }
+    function deletePlaylistFromDB(name) {
+      const transaction = db.transaction(["playlists"], "readwrite");
+      const store = transaction.objectStore("playlists");
+      store.delete(name);
     }
     function loadPlaylists() {
       return new Promise((resolve, reject) => {
@@ -533,12 +756,18 @@
           delBtn.textContent = "×";
           delBtn.onclick = (e) => {
             e.stopPropagation();
+            if (name === "Default") {
+              alert("Cannot delete the Default playlist.");
+              return;
+            }
             if(confirm("Delete playlist '" + name + "'?")) {
-              delete playlists[name];
-              if(currentPlaylist === name) { currentPlaylist = "Default"; }
-              savePlaylist(name, { tracks: [] });
+              delete playlists[name]; // Remove from in-memory object
+              deletePlaylistFromDB(name); // Remove from IndexedDB
+              if(currentPlaylist === name) {
+                currentPlaylist = "Default";
+                loadPlaylist(currentPlaylist);
+              }
               renderPlaylistNames();
-              loadPlaylist(currentPlaylist);
             }
           };
           li.appendChild(delBtn);
@@ -591,7 +820,7 @@
           li.appendChild(checkbox);
         }
         const thumb = document.createElement("img");
-        thumb.src = track.art || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIGZpbGw9IiMzMzMiIC8+PHBhdGggZD0iTTIwIDIwaDEwIiBzdHJva2U9IiNmMWYxZjEiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgLz48L3N2Zz4=";
+        thumb.src = track.art || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIGZpbGw9IiMzMzMiIC8+PHBhdGggZD0iTTE2IDE2aDgiIHN0cm9rZT0iI2YxZjFmMSIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIiAvPjwvc3ZnPg==";
         li.appendChild(thumb);
         const titleSpan = document.createElement("span");
         titleSpan.className = "track-info";
@@ -686,7 +915,7 @@
     const shuffleBtn = document.getElementById("shuffleBtn");
     const repeatBtn = document.getElementById("repeatBtn");
     const timeDisplay = document.getElementById("timeDisplay");
-    let processedFiles = new Set(); // Stores already processed files
+    let processedFiles = new Set();
     
     playPauseBtn.onclick = () => {
       if (audio.paused) { audio.play(); playIcon.style.display = "none"; pauseIcon.style.display = "block"; }
@@ -694,8 +923,16 @@
     };
     prevBtn.onclick = () => { currentTrackIndex = (currentTrackIndex - 1 + tracks.length) % tracks.length; playTrack(); };
     nextBtn.onclick = () => { nextTrack(); };
-    shuffleBtn.onclick = () => { isShuffle = !isShuffle; shuffleBtn.classList.toggle("active", isShuffle); saveSetting("shuffle", isShuffle); };
-    repeatBtn.onclick = () => { isRepeat = !isRepeat; repeatBtn.classList.toggle("active", isRepeat); saveSetting("repeat", isRepeat); };
+    shuffleBtn.onclick = () => {
+      isShuffle = !isShuffle;
+      shuffleBtn.classList.toggle("active", isShuffle);
+      saveSetting("shuffle", isShuffle);
+    };
+    repeatBtn.onclick = () => {
+      isRepeat = !isRepeat;
+      repeatBtn.classList.toggle("active", isRepeat);
+      saveSetting("repeat", isRepeat);
+    };
     audio.addEventListener("timeupdate", () => {
       if (audio.duration) {
         const percent = (audio.currentTime / audio.duration) * 100;
@@ -708,7 +945,10 @@
       const clickX = e.clientX - rect.left;
       audio.currentTime = (clickX / rect.width) * audio.duration;
     };
-    volumeSlider.oninput = () => { audio.volume = volumeSlider.value; };
+    volumeSlider.oninput = () => {
+      audio.volume = volumeSlider.value;
+      saveSetting("volume", volumeSlider.value); // Save volume on change
+    };
     audio.onended = () => { if(isRepeat){ audio.currentTime = 0; audio.play(); } else { nextTrack(); } };
     function nextTrack() {
       if (tracks.length === 0) return;
@@ -732,11 +972,18 @@
     }
     function highlightCurrentTrack() {
       const lis = document.querySelectorAll("#tracks li");
-      lis.forEach((li, index) => { li.classList.toggle("active", index == currentTrackIndex); });
+      lis.forEach((li, index) => {
+        const isActive = index == currentTrackIndex;
+        li.classList.toggle("active", isActive);
+        // Auto-scroll to the active track
+        if (isActive) {
+          li.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
     }
     function updateCurrentTrackArt(art) {
       const imgElem = document.getElementById("currentArtImg");
-      imgElem.src = art || (playlists[currentPlaylist].art || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjE1MCIgaGVpZ2h0PSIxNTAiIGZpbGw9IiMzMzMiIC8+PGxpbmUgeDE9IjAiIHkxPSIwIiB4Mj0iMTUwIiB5Mj0iMTUwIiBzdHJva2U9IiNmMWYxZjEiIHN0cm9rZS13aWR0aD0iNSIgLz48bGluZSB4MT0iMTUwIiB5MT0iMCIgeDI9IjAiIHkyPSIxNTAiIHN0cm9rZT0iI2YxZjFmMSIgc3Ryb2tlLXdpZHRoPSI1IiAvPjwvc3ZnPg==");
+      imgElem.src = art || (playlists[currentPlaylist].art || "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzMzMiIC8+PGxpbmUgeDE9IjAiIHkxPSIwIiB4Mj0iMTAwIiB5Mj0iMTAwIiBzdHJva2U9IiNmMWYxZjEiIHN0cm9rZS13aWR0aD0iNSIgLz48bGluZSB4MT0iMTAwIiB5MT0iMCIgeDI9IjAiIHkyPSIxMDAiIHN0cm9rZT0iI2YxZjFmMSIgc3Ryb2tlLXdpZHRoPSI1IiAvPjwvc3ZnPg==");
     }
     function formatTime(seconds) {
       const m = Math.floor(seconds / 60);
@@ -766,16 +1013,15 @@
       });
     };
     function addTrackToPlaylist(track) {
-      if (tracks.some(t => t.name === track.name)) return; // Prevent duplicates
+      if (tracks.some(t => t.name === track.name)) return;
       tracks.push(track);
       playlists[currentPlaylist].tracks = tracks;
       savePlaylist(currentPlaylist, playlists[currentPlaylist]);
       renderTrackList();
       
-      // Reduce memory usage by revoking old object URLs
       if (track.file) {
         track.fileUrl = URL.createObjectURL(track.file);
-        setTimeout(() => URL.revokeObjectURL(track.fileUrl), 5000); // Release memory after 5s
+        setTimeout(() => URL.revokeObjectURL(track.fileUrl), 5000);
       }
     }
     
@@ -819,13 +1065,13 @@
       processingPopup.style.display = "block";
       processingPopup.textContent = `Processing... 0/${total}`;
       
-      const batchSize = Math.max(5, Math.floor(total / 10)); // Adaptive batch size
+      const batchSize = Math.max(5, Math.floor(total / 10));
       for (let i = 0; i < total; i += batchSize) {
         const batch = entries.slice(i, i + batchSize);
         await Promise.all(batch.map(async (entry) => {
           try {
             const file = await entry.getFile();
-            if (processedFiles.has(file.name)) return; // Skip already processed
+            if (processedFiles.has(file.name)) return;
             processedFiles.add(file.name);
             
             const id = Date.now() + Math.random().toString(36).substr(2, 9);
@@ -852,7 +1098,7 @@
         }));
         
         processingPopup.textContent = `Processing... ${Math.min(i + batchSize, total)}/${total}`;
-        await new Promise(resolve => setTimeout(resolve, 100)); // Increased delay to reduce lag
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       processingPopup.style.display = "none";
     }
@@ -896,7 +1142,7 @@
         selectedPlaylists.forEach(name => {
           if(name === "Default") return;
           delete playlists[name];
-          savePlaylist(name, { tracks: [] });
+          deletePlaylistFromDB(name); // Properly delete from IndexedDB
         });
         selectedPlaylists.clear();
         if(!playlists[currentPlaylist]) { currentPlaylist = "Default"; }
@@ -906,7 +1152,12 @@
     };
     document.getElementById("deleteAllPlaylists").onclick = () => {
       if(confirm("Delete ALL playlists? (Default will be recreated)")) {
-        Object.keys(playlists).forEach(name => { if(name !== "Default") { delete playlists[name]; savePlaylist(name, { tracks: [] }); } });
+        Object.keys(playlists).forEach(name => {
+          if(name !== "Default") {
+            delete playlists[name];
+            deletePlaylistFromDB(name); // Properly delete from IndexedDB
+          }
+        });
         currentPlaylist = "Default";
         renderPlaylistNames();
         loadPlaylist(currentPlaylist);
