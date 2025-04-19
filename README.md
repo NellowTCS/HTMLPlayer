@@ -41,9 +41,8 @@ This is an HTML5 audio player that supports playlists, ID3 tag parsing for album
 - **Seek Track**: Click and drag the progress bar to seek through the track.
 
 ## Screenshots
-![Screenshot 2025-03-09 1 53 53 PM](https://github.com/user-attachments/assets/0b1a93b7-8fff-4e55-81a5-ce3d2443ccce)
-![Screenshot 2025-03-09 1 54 31 PM](https://github.com/user-attachments/assets/22b7df9b-2315-413b-847e-b7cc90fed5e8)
-
+<img width="1238" alt="Screenshot 2025-04-19 at 12 06 27 PM" src="https://github.com/user-attachments/assets/98e91ec0-3ce4-4613-8d6d-593d66412bd0" />
+<img width="279" alt="Screenshot 2025-04-19 at 12 06 54 PM" src="https://github.com/user-attachments/assets/f363fadd-4055-463d-a855-04901539ba70" />
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
