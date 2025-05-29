@@ -2,7 +2,6 @@
   "name": "HTMLPlayer",
   "short_name": "HTMLPlayer",
   "start_url": "/HTMLPlayer/",
-  "scope": "/HTMLPlayer/",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#2196F3",
