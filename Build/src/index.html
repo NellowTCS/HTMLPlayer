@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="default">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTMLPlayer</title>
+  <link rel="stylesheet" href="/Themes/styles.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <header class="p-4">
+    <h1 class="text-2xl font-bold">HTMLPlayer</h1>
+    <button id="settingsBtn" aria-label="Open settings" class="p-2">
+      <i class="fas fa-gear"></i>
+    </button>
+  </header>
+  <main class="flex flex-col md:flex-row gap-4 p-4">
+    <div id="playlists" class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
+      <h2 class="text-xl font-semibold">Playlists</h2>
+      <button id="addPlaylist" aria-label="Add playlist" class="p-2"><i class="fas fa-plus"></i> Add Playlist</button>
+      <button id="setPlaylistArt" aria-label="Set playlist art" class="p-2"><i class="fas fa-image"></i> Set Playlist Art</button>
+      <button id="toggleBulkDelete" aria-label="Toggle bulk delete" class="p-2"><i class="fas fa-trash"></i> Toggle Bulk Delete</button>
+      <div id="bulkDeleteActions" class="hidden">
+        <button id="deleteSelectedPlaylists" aria-label="Delete selected playlists" class="p-2">Delete Selected</button>
+        <button id="deleteAllPlaylists" aria-label="Delete all playlists" class="p-2">Delete All</button>
+      </div>
+    </div>
+    <div id="tracks" class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
+      <button id="toggleBulkDeleteTracks" aria-label="Toggle bulk delete tracks" class="p-2"><i class="fas fa-trash"></i> Toggle Bulk Delete Tracks</button>
+      <div id="bulkDeleteTracksActions" class="hidden">
+        <button id="deleteSelectedTracks" aria-label="Delete selected tracks" class="p-2">Delete Selected</button>
+        <button id="deleteAllTracks" aria-label="Delete all tracks" class="p-2">Delete All</button>
+      </div>
+      <div id="trackList"></div>
+    </div>
+    <div id="player" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 shadow">
+      <div class="flex items-center gap-4">
+        <button id="playPause" aria-label="Play or pause" class="p-2"><i class="fas fa-play"></i></button>
+        <button id="prev" aria-label="Previous track" class="p-2"><i class="fas fa-backward"></i></button>
+        <button id="next" aria-label="Next track" class="p-2"><i class="fas fa-forward"></i></button>
+        <input id="progress" type="range" min="0" max="100" value="0" aria-label="Track progress" class="w-full">
+        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+        <button id="volumeBtn" aria-label="Toggle mute" class="p-2"><i class="fas fa-volume-up"></i></button>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" class="w-24">
+      </div>
+      <canvas id="visualizer" class="w-full h-32 mt-2"></canvas>
+    </div>
+  </main>
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" role="dialog" aria-modal="true">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded shadow w-full max-w-md">
+      <h2 class="text-xl font-semibold">Settings</h2>
+      <div id="settingsContent"></div>
+      <button id="closeSettings" aria-label="Close settings" class="p-2"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+  <div id="addingPopup" class="hidden fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded shadow">
+    Adding... <span id="addingCount">0</span> entries
+  </div>
+  <div id="processingPopup" class="hidden fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded shadow">
+    Processing... <span id="processingProgress">0/0</span>
+  </div>
+  <button id="addMusic" aria-label="Add music" class="fixed bottom-4 right-4 p-2"><i class="fas fa-music"></i> Add Music</button>
+  <button id="installApp" aria-label="Install app" class="fixed bottom-4 right-20 p-2"><i class="fas fa-download"></i> Install App</button>
+
+
+  <script type="module" src="/main.ts"></script>
+</body>
+</html>

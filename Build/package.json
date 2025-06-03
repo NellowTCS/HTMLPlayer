@@ -23,6 +23,10 @@
     "zustand": "^5.0.5"
   },
   "devDependencies": {
+    "@types/howler": "^2.2.12",
+    "@types/jsmediatags": "^3.9.6",
+    "@types/lodash": "^4.17.17",
+    "@types/p5": "^1.7.6",
     "axe-core": "^4.10.3",
     "stats.js": "^0.17.0",
     "tailwindcss": "^4.1.8",
