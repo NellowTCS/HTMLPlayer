@@ -11,6 +11,7 @@
   "description": "An offline mp3 and ogg music player with playlist, ratings, and persistence.",
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@tailwindcss/vite": "^4.1.8",
     "browser-fs-access": "^0.37.0",
     "focus-trap": "^7.6.5",
     "howler": "^2.2.4",
@@ -27,7 +28,9 @@
     "@types/jsmediatags": "^3.9.6",
     "@types/lodash": "^4.17.17",
     "@types/p5": "^1.7.6",
+    "autoprefixer": "^10.4.21",
     "axe-core": "^4.10.3",
+    "postcss": "^8.5.4",
     "stats.js": "^0.17.0",
     "tailwindcss": "^4.1.8",
     "vitest": "^3.2.0"
