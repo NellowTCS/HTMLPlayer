@@ -1,5 +1,5 @@
 import { createFocusTrap } from 'focus-trap';
-import { sanitize } from 'sanitize-html';
+import sanitize from 'sanitize-html';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { saveSettings, loadSettings } from './storage';

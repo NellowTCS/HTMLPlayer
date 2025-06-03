@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import { sanitize } from 'sanitize-html';
+import sanitize from 'sanitize-html';
 
 interface Playlist {
   id: string;

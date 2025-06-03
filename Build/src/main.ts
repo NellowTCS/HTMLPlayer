@@ -2,13 +2,12 @@ import { create } from 'zustand';
 import { initPlayer } from './player';
 import { initSettings } from './settings';
 import { initVisualizer } from './visualizer';
-import { initDatabase } from './storage';
 import { initPlaylists } from './playlists';
 import { initTracks } from './tracks';
 import { initUI } from './ui';
 
 // Define global state
-interface AppState {
+export interface AppState {
   currentTrack: string | null;
   isPlaying: boolean;
   theme: string;
@@ -28,7 +27,6 @@ const useStore = create<AppState>((set) => ({
 
 // Initialize app
 async function initApp() {
-  await initDatabase();
   initUI(useStore);
   initPlayer(useStore);
   initSettings(useStore);

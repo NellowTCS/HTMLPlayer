@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import { sanitize } from 'sanitize-html';
+import sanitize from 'sanitize-html';
 import { fileOpen } from 'browser-fs-access';
-import { readTags } from 'jsmediatags';
+import jsmediatags from 'jsmediatags'; // Updated import
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { saveTrack, loadTracks } from './storage';
@@ -23,7 +23,7 @@ export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
     for (const file of files) {
       const id = uuidv4();
       const url = URL.createObjectURL(file);
-      readTags(file, {
+      jsmediatags.read(file, { // Updated to jsmediatags.read
         onSuccess: async (tag) => {
           await saveTrack({ id, url, title: tag.tags.title || file.name });
           renderTracks();
