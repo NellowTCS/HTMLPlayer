@@ -1,0 +1,31 @@
+{
+  "name": "htmlplayer",
+  "version": "2.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "An offline mp3 and ogg music player with playlist, ratings, and persistence.",
+  "dependencies": {
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "browser-fs-access": "^0.37.0",
+    "focus-trap": "^7.6.5",
+    "howler": "^2.2.4",
+    "jsmediatags": "^3.9.7",
+    "localforage": "^1.10.0",
+    "lodash": "^4.17.21",
+    "p5": "^2.0.3",
+    "sanitize-html": "^2.17.0",
+    "vite": "^6.3.5",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "axe-core": "^4.10.3",
+    "stats.js": "^0.17.0",
+    "tailwindcss": "^4.1.8",
+    "vitest": "^3.2.0"
+  }
+}
