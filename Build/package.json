@@ -13,20 +13,18 @@
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.6.0",
     "@tailwindcss/vite": "^4.1.8",
-    "@types/p5": "^1.7.6",
     "browser-fs-access": "^0.37.0",
     "dompurify": "^3.2.6",
     "FileSaver": "^0.10.0",
-    "focus-trap": "^7.6.5",
     "howler": "^2.2.4",
     "idb": "^8.0.3",
     "jsmediatags": "^3.9.7",
     "libtess": "^1.2.2",
     "lodash-es": "^4.17.21",
-    "p5": "^2.0.3",
     "typescript": "^5.8.3",
     "uuid": "^11.1.0",
     "vite": "^6.3.5",
+    "wavesurfer.js": "^7.9.5",
     "zustand": "^5.0.5"
   },
   "devDependencies": {

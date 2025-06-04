@@ -1,84 +1,125 @@
-import p5 from 'p5';
+import WaveSurfer from 'wavesurfer.js';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
-import { loadSettings } from './storage';
+import { loadSettings, getAudioBlobUrl } from './storage';
 
-// Just use Howl as a global
-let howl: Howl | null = null;
+let wavesurfer: WaveSurfer | null = null;
 
 export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
-  const canvas = document.getElementById('visualizer');
-  if (!canvas) {
-    console.error('Visualizer canvas element not found');
-    return;
-  }
-
-  const container = canvas.parentElement;
+  const container = document.getElementById('visualizer');
   if (!container) {
     console.error('Visualizer container element not found');
     return;
   }
 
-  const sketch = (p: p5) => {
-    let analyser: AnalyserNode | undefined;
-
-    p.setup = () => {
-      // Create canvas with the container's dimensions
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      const canvas = p.createCanvas(width, height, p.WEBGL);
-      canvas.parent(container);
-      
-      // Set the renderer attributes
-      p.setAttributes('antialias', true);
-      
-      const audioContext = (howl as any)?._sounds[0]?._node?.context as AudioContext | undefined;
-      if (audioContext) {
-        analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        (howl as any)?._sounds[0]?._node?.connect(analyser);
-        analyser.connect(audioContext.destination);
+  async function createWaveform(url: string) {
+    // Cleanup existing instance first
+    if (wavesurfer) {
+      try {
+        wavesurfer.pause();
+        wavesurfer.destroy();
+      } catch (error) {
+        console.warn('Error cleaning up wavesurfer:', error);
       }
-    };
+      wavesurfer = null;
+    }
 
-    p.draw = async () => {
-      const settings = await loadSettings();
-      p.background(0);
-      if (analyser && settings?.visualizerStyle === 'particles') {
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyser.getByteFrequencyData(dataArray);
-        p.fill(255);
-        for (let i = 0; i < bufferLength; i++) {
-          const x = p.map(i, 0, bufferLength, 0, (p as any).width, true);
-          const y = p.map(dataArray[i], 0, 255, (p as any).height, 0, true);
-          p.circle(x, y, 5);
+    if (!container) {
+      console.error('Visualizer container is not available');
+      return;
+    }
+    
+    const settings = await loadSettings();
+    const containerHeight = container.clientHeight;
+    
+    try {
+      wavesurfer = WaveSurfer.create({
+        container: container as HTMLElement,
+        waveColor: '#4a9eff',
+        progressColor: '#006EE6',
+        cursorColor: '#fff',
+        barWidth: 2,
+        barGap: 1,
+        height: Math.min(containerHeight, 128),
+        normalize: true,
+        autoScroll: true,
+        mediaControls: false,
+        minPxPerSec: 50,
+        interact: true
+      });
+
+      // Set up event handlers before loading
+      wavesurfer.on('play', () => {
+        if (store.getState().isPlaying !== true) {
+          store.getState().setIsPlaying(true);
         }
+      });
+
+      wavesurfer.on('pause', () => {
+        if (store.getState().isPlaying !== false) {
+          store.getState().setIsPlaying(false);
+        }
+      });
+
+      wavesurfer.on('error', (error) => {
+        console.error('Wavesurfer error:', error);
+      });
+
+      // Get the blob URL and load the audio file
+      const blobUrl = await getAudioBlobUrl(url);
+      await wavesurfer.load(blobUrl);
+
+      // Only start playing if the store says we should be playing
+      if (store.getState().isPlaying) {
+        await wavesurfer.play();
       }
-    };
+    } catch (error) {
+      console.error('Error initializing audio:', error);
+    }
+  }
 
-    p.windowResized = () => {
-      // Resize canvas when window is resized
-      p.resizeCanvas(container.clientWidth, container.clientHeight, true);
-    };
-  };
+  // Keep track of the last track URL to avoid unnecessary reloads
+  let lastTrackUrl: string | null = null;
 
-  let sketchInstance: p5 | null = null;
-
+  // Subscribe to store changes
   store.subscribe((state) => {
-    if (state.currentTrack && state.currentTrack !== (howl as any)?.src) {
-      if (howl) {
-      howl.stop();
-      howl.unload();
+    // Handle track changes
+    if (state.currentTrack !== lastTrackUrl) {
+      lastTrackUrl = state.currentTrack;
+      if (state.currentTrack) {
+        createWaveform(state.currentTrack);
+      } else if (wavesurfer) {
+        wavesurfer.pause();
+        wavesurfer.destroy();
+        wavesurfer = null;
       }
-      // Just use Howl as a global
-      howl = new Howl({ src: [state.currentTrack], html5: true });
+    }
 
-      if (sketchInstance) {
-      sketchInstance.remove();
+    // Handle play/pause state changes
+    if (wavesurfer) {
+      try {
+        const isCurrentlyPlaying = wavesurfer.isPlaying();
+        if (state.isPlaying && !isCurrentlyPlaying) {
+          wavesurfer.play().catch(error => {
+            console.error('Error playing audio:', error);
+            store.getState().setIsPlaying(false);
+          });
+        } else if (!state.isPlaying && isCurrentlyPlaying) {
+          wavesurfer.pause();
+        }
+      } catch (error) {
+        console.error('Error controlling playback:', error);
       }
-      // Use namespace import for p5
-      sketchInstance = new (p5 as any)(sketch, canvas);
+    }
+  });
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    if (wavesurfer && container) {
+      const containerHeight = container.clientHeight;
+      wavesurfer.setOptions({
+        height: Math.min(containerHeight, 128)
+      });
     }
   });
 }

@@ -1,7 +1,13 @@
 import { debounce } from 'lodash-es';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
-import { savePlaybackPosition, loadPlaybackPosition, loadTracks } from './storage';
+import { 
+  savePlaybackPosition, 
+  loadPlaybackPosition, 
+  loadTracks,
+  getAudioBlobUrl,
+  revokeAudioBlobUrl
+} from './storage';
 
 declare const Howler: any;
 
@@ -121,7 +127,11 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
   }, 100));
 
   store.subscribe(async (state) => {
-    if (state.currentTrack && state.currentTrack !== currentTrackUrl) {
+    if (state.currentTrack !== currentTrackUrl) {
+      // Cleanup old track
+      if (currentTrackUrl) {
+        revokeAudioBlobUrl(currentTrackUrl);
+      }
       if (howl) {
         howl.stop();
         howl.unload();
@@ -138,10 +148,8 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
           throw new Error('No track URL provided');
         }
 
-        // Create a new Blob URL from the audio file
-        const response = await fetch(trackUrl);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
+        // Get the blob URL from our central management
+        const blobUrl = await getAudioBlobUrl(trackUrl);
 
         // Use Howler's Howl constructor
         howl = new Howl({
