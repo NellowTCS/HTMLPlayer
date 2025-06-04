@@ -1,5 +1,6 @@
-const p5 = require('p5');
-const { Howl } = require('howler');
+import * as p5 from 'p5';
+import * as howlerimport from 'howler';
+const { Howl } = howlerimport;
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { loadSettings } from './storage';
@@ -7,9 +8,8 @@ import { loadSettings } from './storage';
 export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
   const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
   let howl: Howl | null = null;
-  let p5Instance: typeof p5 | null = null;
 
-  const sketch = (p: typeof p5) => {
+  const sketch = (p: p5) => {
     let analyser: AnalyserNode | undefined;
 
     p.setup = () => {
@@ -44,18 +44,21 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
     };
   };
 
+  let sketchInstance: p5 | null = null;
+
   store.subscribe((state) => {
     if (state.currentTrack && state.currentTrack !== (howl as any)?.src) {
       if (howl) {
-        howl.stop();
-        howl.unload();
+      howl.stop();
+      howl.unload();
       }
       howl = new Howl({ src: [state.currentTrack], html5: true });
 
-      if (p5Instance) {
-        p5Instance.remove();
+      if (sketchInstance) {
+      sketchInstance.remove();
       }
-      p5Instance = new p5(sketch, canvas);
+      // Use namespace import for p5
+      sketchInstance = new (p5 as any)(sketch, canvas);
     }
   });
 }

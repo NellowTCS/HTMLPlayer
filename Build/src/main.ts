@@ -6,14 +6,6 @@ import { initPlaylists } from './playlists';
 import { initTracks } from './tracks';
 import { initUI } from './ui';
 
-// Ensure required globals
-declare global {
-  interface Window {
-    jsmediatags: any;
-  }
-}
-
-// Define global state
 export interface AppState {
   currentTrack: string | null;
   isPlaying: boolean;
@@ -32,7 +24,6 @@ const useStore = create<AppState>((set) => ({
   setTheme: (theme) => set({ theme }),
 }));
 
-// Initialize app
 async function initApp() {
   initUI(useStore);
   initPlayer(useStore);
@@ -41,11 +32,11 @@ async function initApp() {
   initPlaylists(useStore);
   initTracks(useStore);
 
-  // Keyboard shortcuts for accessibility
   document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
       e.preventDefault();
-      useStore.getState().setIsPlaying(!useStore.getState().isPlaying);
+      const store = useStore.getState();
+      store.setIsPlaying(!store.isPlaying);
     }
   });
 }

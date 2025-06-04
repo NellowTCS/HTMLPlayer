@@ -1,5 +1,5 @@
-const localforage = require('localforage');
-const sanitizeHtml = require('sanitize-html');
+import { openDB } from 'idb';
+import DOMPurify from 'dompurify';
 
 interface Playlist {
   id: string;
@@ -18,50 +18,64 @@ interface Settings {
   visualizerStyle: string;
 }
 
-localforage.config({ name: 'HTMLPlayer' });
+// Open IndexedDB database
+const dbPromise = openDB('HTMLPlayer', 1, {
+  upgrade(db) {
+    db.createObjectStore('playlists', { keyPath: 'id' });
+    db.createObjectStore('tracks', { keyPath: 'id' });
+    db.createObjectStore('settings');
+    db.createObjectStore('playback');
+  },
+});
 
+// Playlist
 export async function savePlaylist(playlist: Playlist) {
-  await localforage.setItem(`playlist:${playlist.id}`, {
+  const db = await dbPromise;
+  await db.put('playlists', {
     ...playlist,
-    name: sanitizeHtml(playlist.name),
+    name: DOMPurify.sanitize(playlist.name),
   });
 }
 
 export async function loadPlaylists(): Promise<Playlist[]> {
-  const playlists: Playlist[] = [];
-  await localforage.iterate((value: Playlist, key: string) => {
-    if (key.startsWith('playlist:')) playlists.push(value);
-  });
-  return playlists;
+  const db = await dbPromise;
+  return await db.getAll('playlists');
 }
 
+// Track
 export async function saveTrack(track: Track) {
-  await localforage.setItem(`track:${track.id}`, {
+  const db = await dbPromise;
+  await db.put('tracks', {
     ...track,
-    title: sanitizeHtml(track.title),
+    title: DOMPurify.sanitize(track.title),
   });
 }
 
 export async function loadTracks(): Promise<Track[]> {
-  const tracks: Track[] = [];
-  await localforage.iterate((value: Track, key: string) => {
-    if (key.startsWith('track:')) tracks.push(value);
-  });
-  return tracks;
+  const db = await dbPromise;
+  return await db.getAll('tracks');
 }
 
+// Settings
 export async function saveSettings(settings: Settings) {
-  await localforage.setItem('settings', settings);
+  const db = await dbPromise;
+  await db.put('settings', settings, 'user-settings');
 }
 
 export async function loadSettings(): Promise<Settings | null> {
-  return await localforage.getItem('settings');
+  const db = await dbPromise;
+  return await db.get('settings', 'user-settings');
 }
 
+// Playback Position
 export async function savePlaybackPosition(trackId: string | null, position: number) {
-  if (trackId) await localforage.setItem(`playback:${trackId}`, position);
+  if (!trackId) return;
+  const db = await dbPromise;
+  await db.put('playback', position, trackId);
 }
 
 export async function loadPlaybackPosition(trackId: string | null): Promise<number | null> {
-  return trackId ? await localforage.getItem(`playback:${trackId}`) : null;
+  if (!trackId) return null;
+  const db = await dbPromise;
+  return await db.get('playback', trackId);
 }

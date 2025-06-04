@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-const sanitize = require('sanitize-html');
+import DOMPurify from 'dompurify';
 import { fileOpen } from 'browser-fs-access';
-import * as jsmediatags from 'jsmediatags';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { savePlaylist, loadPlaylists } from './storage';
@@ -12,14 +11,14 @@ export function initPlaylists(store: UseBoundStore<StoreApi<AppState>>) {
   const renderPlaylists = async () => {
     const playlists = await loadPlaylists();
     playlistsEl.innerHTML = playlists
-      .map((p) => `<div>${sanitize(p.name)} <img src="${p.art || ''}" loading="lazy"></div>`)
+      .map((p) => `<div>${DOMPurify.sanitize(p.name)} <img src="${p.art || ''}" loading="lazy"></div>`)
       .join('');
   };
 
   document.getElementById('addPlaylist')?.addEventListener('click', async () => {
     const name = prompt('Playlist name?');
     if (name) {
-      await savePlaylist({ id: uuidv4(), name: sanitize(name) });
+      await savePlaylist({ id: uuidv4(), name: DOMPurify.sanitize(name) });
       renderPlaylists();
     }
   });
