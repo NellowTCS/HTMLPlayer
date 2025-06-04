@@ -206,14 +206,14 @@ export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
   });
 
   // Subscribe to store changes to update active track highlighting
-  store.subscribe((state) => {
-    if (state.currentTrack) {
-      const trackItems = tracksEl.querySelectorAll('li');
-      trackItems.forEach(li => {
-        const track = tracks[parseInt(li.dataset.index || '-1')];
-        li.classList.toggle('active', track?.url === state.currentTrack);
-      });
-    }
+  const unsubscribe = store.subscribe((state) => {
+    const trackItems = tracksEl.querySelectorAll('li');
+    trackItems.forEach(li => {
+      const track = tracks[parseInt(li.dataset.index || '-1')];
+      if (track) {
+        li.classList.toggle('active', track.url === state.currentTrack);
+      }
+    });
   });
 
   // Initial render

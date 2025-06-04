@@ -1,8 +1,9 @@
-import { Howl } from 'howler';
+import * as Howler from 'howler';
+const { Howl } = Howler;
 import { debounce } from 'lodash-es';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
-import { savePlaybackPosition, loadPlaybackPosition } from './storage';
+import { savePlaybackPosition, loadPlaybackPosition, loadTracks } from './storage';
 
 interface Track {
   id: string;
@@ -30,23 +31,80 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
   }, 100);
 
   document.getElementById('playPause')?.addEventListener('click', () => {
-    if (howl) {
+    if (!howl && store.getState().currentTrack) {
+      // If we don't have a howl instance but we have a track, create one
+      store.subscribe((state) => state.currentTrack)();
+    } else if (howl) {
       if (howl.playing()) {
         howl.pause();
-        store.getState().setIsPlaying(false);
       } else {
         howl.play();
-        store.getState().setIsPlaying(true);
       }
     }
   });
 
-  document.getElementById('nextBtn')?.addEventListener('click', () => {
-    // Implement next track logic
+  let isShuffleMode = false;
+  let isRepeatMode = false;
+
+  // Get the next track based on current state
+  const getNextTrack = async () => {
+    const tracks = await loadTracks();
+    if (tracks.length === 0) return null;
+    
+    const currentTrackUrl = store.getState().currentTrack;
+    const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
+    
+    if (isShuffleMode) {
+      const nextIndex = Math.floor(Math.random() * tracks.length);
+      return tracks[nextIndex].url;
+    }
+    
+    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % tracks.length;
+    return tracks[nextIndex].url;
+  };
+
+  // Get the previous track based on current state
+  const getPrevTrack = async () => {
+    const tracks = await loadTracks();
+    if (tracks.length === 0) return null;
+    
+    const currentTrackUrl = store.getState().currentTrack;
+    const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
+    
+    if (isShuffleMode) {
+      const prevIndex = Math.floor(Math.random() * tracks.length);
+      return tracks[prevIndex].url;
+    }
+    
+    const prevIndex = currentIndex === -1 ? tracks.length - 1 : 
+      (currentIndex - 1 + tracks.length) % tracks.length;
+    return tracks[prevIndex].url;
+  };
+
+  document.getElementById('nextBtn')?.addEventListener('click', async () => {
+    const nextTrackUrl = await getNextTrack();
+    if (nextTrackUrl) {
+      store.getState().setCurrentTrack(nextTrackUrl);
+    }
   });
 
-  document.getElementById('prevBtn')?.addEventListener('click', () => {
-    // Implement previous track logic
+  document.getElementById('prevBtn')?.addEventListener('click', async () => {
+    const prevTrackUrl = await getPrevTrack();
+    if (prevTrackUrl) {
+      store.getState().setCurrentTrack(prevTrackUrl);
+    }
+  });
+
+  document.getElementById('shuffleBtn')?.addEventListener('click', () => {
+    isShuffleMode = !isShuffleMode;
+    const btn = document.getElementById('shuffleBtn');
+    btn?.classList.toggle('active', isShuffleMode);
+  });
+
+  document.getElementById('repeatBtn')?.addEventListener('click', () => {
+    isRepeatMode = !isRepeatMode;
+    const btn = document.getElementById('repeatBtn');
+    btn?.classList.toggle('active', isRepeatMode);
   });
 
   progressEl?.addEventListener('input', debounce(() => {
@@ -58,20 +116,66 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
 
   store.subscribe(async (state) => {
     if (state.currentTrack && state.currentTrack !== currentTrackUrl) {
-      if (intervalId) clearInterval(intervalId);
-      howl = new Howl({
-        src: [state.currentTrack],
-        html5: true,
-        format: ['mp3', 'ogg', 'm4a'],
-        onplay: () => store.getState().setIsPlaying(true),
-        onpause: () => store.getState().setIsPlaying(false),
-        onend: () => store.getState().setCurrentTrack(null),
-      });
+      if (howl) {
+        howl.stop();
+        howl.unload();
+      }
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+
+      // Create new Howl instance after cleanup
       currentTrackUrl = state.currentTrack;
-      const pos = await loadPlaybackPosition(state.currentTrack);
-      if (!howl) {console.error('Howl instance is null'); return;}
-      if (pos !== null) howl.seek(pos);
-      howl.play();
+      try {
+        howl = new Howl({
+          src: [state.currentTrack],
+          html5: true,
+          format: ['mp3', 'wav', 'ogg', 'm4a'],
+          autoplay: false,
+          onload: () => {
+            console.log('Track loaded successfully');
+          },
+          onloaderror: (id, error) => {
+            console.error('Error loading track:', error);
+          },
+          onplay: () => {
+            store.getState().setIsPlaying(true);
+          },
+          onpause: () => {
+            store.getState().setIsPlaying(false);
+          },
+          onend: async () => {
+            if (isRepeatMode) {
+              howl?.play();
+            } else {
+              const nextTrackUrl = await getNextTrack();
+              if (nextTrackUrl) {
+                store.getState().setCurrentTrack(nextTrackUrl);
+              } else {
+                store.getState().setCurrentTrack(null);
+              }
+            }
+          },
+          onstop: () => {
+            store.getState().setIsPlaying(false);
+          }
+        });
+
+        const pos = await loadPlaybackPosition(state.currentTrack);
+        if (!howl) {
+          console.error('Howl instance is null');
+          return;
+        }
+        if (pos !== null) {
+          howl.seek(pos);
+        }
+        howl.play();
+        intervalId = setInterval(updateProgress, 100);
+      } catch (error) {
+        console.error('Error creating Howl instance:', error);
+        currentTrackUrl = null;
+        howl = null;
+      }
       intervalId = setInterval(updateProgress, 100);
     }
   });
