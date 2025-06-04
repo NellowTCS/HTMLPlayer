@@ -206,6 +206,12 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
         if (pos !== null) {
           howl.seek(pos);
         }
+        const playIcon = document.getElementById('playIcon');
+        const pauseIcon = document.getElementById('pauseIcon');
+        if (playIcon && pauseIcon) {
+          playIcon.style.display = 'none';
+          pauseIcon.style.display = '';
+        }
         howl.play();
         intervalId = setInterval(updateProgress, 100);
       } catch (error) {
