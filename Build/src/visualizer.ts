@@ -32,33 +32,62 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
     const settings = await loadSettings();
     const containerHeight = container.clientHeight;
     
-    try {
-      wavesurfer = WaveSurfer.create({
+    try {      wavesurfer = WaveSurfer.create({
         container: container as HTMLElement,
         waveColor: '#4a9eff',
         progressColor: '#006EE6',
         cursorColor: '#fff',
-        barWidth: 2,
-        barGap: 1,
-        height: Math.min(containerHeight, 128),
+        height: 128,
         normalize: true,
         autoScroll: true,
         mediaControls: false,
-        minPxPerSec: 50,
-        interact: true
-      });
+        interact: true,
+        fillParent: true,
+        dragToSeek: true,
+        // peaks: true,
+        // splitChannels: false,
+        renderFunction: (peaks: Array<Float32Array | number[]>, ctx: CanvasRenderingContext2D) => {
+          const height = ctx.canvas.height;
+          const width = ctx.canvas.width;
+          
+          ctx.clearRect(0, 0, width, height);
+          ctx.fillStyle = '#4a9eff';
+          
+          const middle = height / 2;
+          const bar = width / peaks[0].length;
+          
+          // Draw the waveform
+          if (peaks[0] instanceof Float32Array || Array.isArray(peaks[0])) {
+            for (let i = 0; i < peaks[0].length; i++) {
+              const peak = peaks[0][i];
+              const h = Math.abs((peak as number) * height);
+              ctx.fillRect(i * bar, middle - h / 2, bar - 0.5, h);
+            }
+          }
+        }
+        });
 
       // Set up event handlers before loading
+      wavesurfer.on('ready', () => {
+        console.log('WaveSurfer is ready');
+      });
+
       wavesurfer.on('play', () => {
+        console.log('WaveSurfer playing');
         if (store.getState().isPlaying !== true) {
           store.getState().setIsPlaying(true);
         }
       });
 
       wavesurfer.on('pause', () => {
+        console.log('WaveSurfer paused');
         if (store.getState().isPlaying !== false) {
           store.getState().setIsPlaying(false);
         }
+      });
+
+      wavesurfer.on('interaction', () => {
+        wavesurfer?.play();
       });
 
       wavesurfer.on('error', (error) => {
