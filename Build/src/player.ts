@@ -1,5 +1,6 @@
-import { Howl } from 'howler';
-import { debounce } from 'lodash';
+import * as Howler from 'howler';
+const Howl = Howler.Howl;
+import { debounce } from 'lodash-es';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { savePlaybackPosition, loadPlaybackPosition } from './storage';

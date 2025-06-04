@@ -1,5 +1,5 @@
 import { createFocusTrap } from 'focus-trap';
-import sanitize from 'sanitize-html';
+import * as sanitize from 'sanitize-html';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { saveSettings, loadSettings } from './storage';
@@ -28,7 +28,7 @@ export function initSettings(store: UseBoundStore<StoreApi<AppState>>) {
   // Render settings UI
   const renderSettings = async () => {
     const settings = await loadSettings() || { theme: 'default', visualizerStyle: 'particles' };
-    content.innerHTML = sanitize(`
+    content.innerHTML = sanitize.default(`
       <label>Theme:
         <select id="themeSelect">
           <option value="default" ${settings.theme === 'default' ? 'selected' : ''}>Default</option>

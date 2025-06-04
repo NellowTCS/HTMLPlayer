@@ -1,17 +1,26 @@
 import { defineConfig } from 'vite';
-import tailwindcss from '@tailwindcss/vite';
 import commonjs from '@rollup/plugin-commonjs';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      jsmediatags: 'jsmediatags/dist/jsmediatags.min.js',
+    },
+  },
   plugins: [
-    tailwindcss(), // Loads Tailwind CSS
+    commonjs({
+      include: [/node_modules/], // already includes jsmediatags
+    }),
   ],
+  optimizeDeps: {
+    include: ['jsmediatags'], // pre-bundle jsmediatags during dev
+  },
   build: {
     rollupOptions: {
-      input: 'src/index.html', // Points to the entry HTML
+      input: 'src/index.html',
     },
     commonjsOptions: {
-      include: [/jsmediatags/, /node_modules/],
+      include: [/node_modules/, /jsmediatags/], // ensure build treats jsmediatags as CommonJS
     },
   },
 });

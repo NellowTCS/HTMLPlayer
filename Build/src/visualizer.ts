@@ -1,5 +1,6 @@
-import p5 from 'p5';
-import { Howl } from 'howler';
+import * as p5 from 'p5';
+import * as Howler from 'howler';
+const Howl = Howler.Howl;
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { loadSettings } from './storage';

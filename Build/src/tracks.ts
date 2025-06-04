@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
-import sanitize from 'sanitize-html';
+import * as sanitize from 'sanitize-html';
 import { fileOpen } from 'browser-fs-access';
-import jsmediatags from 'jsmediatags'; // Updated import
+import * as jsmediatags from 'jsmediatags'; // Updated import
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { saveTrack, loadTracks } from './storage';
@@ -13,7 +13,7 @@ export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
   const renderTracks = async () => {
     const tracks = await loadTracks();
     tracksEl.innerHTML = tracks
-      .map((t) => `<div>${sanitize(t.title)}</div>`)
+      .map((t) => `<div>${sanitize.default(t.title)}</div>`)
       .join('');
   };
 

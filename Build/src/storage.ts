@@ -1,5 +1,5 @@
-import localforage from 'localforage';
-import sanitize from 'sanitize-html';
+import * as localforage from 'localforage';
+import * as sanitize from 'sanitize-html';
 
 interface Playlist {
   id: string;
@@ -23,7 +23,7 @@ localforage.config({ name: 'HTMLPlayer' });
 export async function savePlaylist(playlist: Playlist) {
   await localforage.setItem(`playlist:${playlist.id}`, {
     ...playlist,
-    name: sanitize(playlist.name),
+    name: sanitize.default(playlist.name),
   });
 }
 
@@ -38,7 +38,7 @@ export async function loadPlaylists(): Promise<Playlist[]> {
 export async function saveTrack(track: Track) {
   await localforage.setItem(`track:${track.id}`, {
     ...track,
-    title: sanitize(track.title),
+    title: sanitize.default(track.title),
   });
 }
 
