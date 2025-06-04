@@ -3,7 +3,7 @@ import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { savePlaybackPosition, loadPlaybackPosition, loadTracks } from './storage';
 
-declare const Howl: any; // Declare Howl as a global
+declare const Howler: any;
 
 interface Track {
   id: string;
@@ -31,9 +31,15 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
   }, 100);
 
   document.getElementById('playPause')?.addEventListener('click', () => {
-    if (!howl && store.getState().currentTrack) {
+    const currentTrack = store.getState().currentTrack;
+    if (!currentTrack) {
+      console.warn('No track selected');
+      return;
+    }
+
+    if (!howl) {
       // If we don't have a howl instance but we have a track, create one
-      store.subscribe((state) => state.currentTrack)();
+      store.getState().setCurrentTrack(currentTrack); // This will trigger the store subscription
     } else if (howl) {
       if (howl.playing()) {
         howl.pause();
@@ -127,15 +133,30 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
       // Create new Howl instance after cleanup
       currentTrackUrl = state.currentTrack;
       try {
-        howl = new Howl({
-          src: [state.currentTrack],
+        const trackUrl = state.currentTrack;
+        if (!trackUrl) {
+          throw new Error('No track URL provided');
+        }
+
+        // Create a new Blob URL from the audio file
+        const response = await fetch(trackUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Use Howler's Howl constructor
+        howl = new Howler.Howl({
+          src: [blobUrl],
           html5: true,
           format: ['mp3', 'wav', 'ogg', 'm4a'],
-          autoplay: false,
+          preload: true,
+          buffer: true,
+          onunload: () => {
+            URL.revokeObjectURL(blobUrl);
+          },
           onload: () => {
             console.log('Track loaded successfully');
           },
-          onloaderror: (id: number, error: Error) => {
+          onloaderror: (id: any, error: any) => {
             console.error('Error loading track:', error);
           },
           onplay: () => {
