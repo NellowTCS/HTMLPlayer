@@ -12,6 +12,8 @@ interface Track {
 
 export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
   let howl: Howl | null = null;
+  let currentTrackUrl: string | null = null;
+  let intervalId: NodeJS.Timeout | null = null;
   const progressEl = document.getElementById('progress') as HTMLInputElement;
   const currentTimeEl = document.getElementById('currentTime') as HTMLElement;
   const durationEl = document.getElementById('duration') as HTMLElement;
@@ -54,8 +56,9 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
     }
   }, 100));
 
-  store.subscribe((state) => {
-    if (state.currentTrack && state.currentTrack !== howl?.src) {
+  store.subscribe(async (state) => {
+    if (state.currentTrack && state.currentTrack !== currentTrackUrl) {
+      if (intervalId) clearInterval(intervalId);
       howl = new Howl({
         src: [state.currentTrack],
         html5: true,
@@ -64,10 +67,11 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
         onpause: () => store.getState().setIsPlaying(false),
         onend: () => store.getState().setCurrentTrack(null),
       });
-      const pos = loadPlaybackPosition(state.currentTrack);
-      if (pos) howl.seek(pos);
+      currentTrackUrl = state.currentTrack;
+      const pos = await loadPlaybackPosition(state.currentTrack);
+      if (pos !== null) howl.seek(pos);
       howl.play();
-      setInterval(updateProgress, 100);
+      intervalId = setInterval(updateProgress, 100);
     }
   });
 }
