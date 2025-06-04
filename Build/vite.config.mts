@@ -1,7 +1,14 @@
 import { defineConfig } from 'vite';
 import commonjs from '@rollup/plugin-commonjs';
+import path from 'node:path';
 
 export default defineConfig({
+  resolve: {
+    dedupe: ['debug', 'ieee754'],
+    alias: {
+      'jsmediatags': path.resolve(__dirname, 'node_modules/jsmediatags/dist/jsmediatags.min.js'),
+    },
+  },
   optimizeDeps: {
     include: [
       'sanitize-html',
@@ -10,7 +17,8 @@ export default defineConfig({
       'debug',
       'ieee754',
       'token-types',
-      '@tokenizer/inflate'
+      '@tokenizer/inflate',
+      'jsmediatags'
     ],
     esbuildOptions: {
       target: 'esnext'
@@ -27,7 +35,7 @@ export default defineConfig({
         /node_modules\/token-types/,
         /node_modules\/@tokenizer/,
       ],
-      defaultIsModuleExports: true
+      defaultIsModuleExports: true,
     },
     rollupOptions: {
       input: 'src/index.html',
@@ -37,9 +45,6 @@ export default defineConfig({
         interop: 'auto',
       }
     }
-  },
-  resolve: {
-    dedupe: ['debug', 'ieee754']
   },
   plugins: [
     commonjs()

@@ -1,10 +1,19 @@
 import { v4 as uuidv4 } from 'uuid';
 import DOMPurify from 'dompurify';
 import { fileOpen } from 'browser-fs-access';
-import { parseBlob } from 'music-metadata';
+const jsmediatags = await import("jsmediatags").then(module => module.default);
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { saveTrack, loadTracks } from './storage';
+
+function readTags(file: File): Promise<{ title?: string }> {
+  return new Promise((resolve, reject) => {
+    jsmediatags.read(file, {
+      onSuccess: (tag) => resolve(tag.tags),
+      onError: (error) => reject(error),
+    });
+  });
+}
 
 export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
   const tracksEl = document.getElementById('trackList') as HTMLElement;
@@ -26,8 +35,8 @@ export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
       const url = URL.createObjectURL(file);
 
       try {
-        const metadata = await parseBlob(file);
-        const title = metadata.common.title || file.name;
+        const tags = await readTags(file);
+        const title = tags.title || file.name;
 
         await saveTrack({ id, url, title });
       } catch (error) {
