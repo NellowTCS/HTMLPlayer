@@ -20,7 +20,8 @@ export default defineConfig({
       input: 'src/index.html',
     },
     commonjsOptions: {
-      include: [/node_modules/, /jsmediatags/], // ensure build treats jsmediatags as CommonJS
+      include: [/node_modules/, /jsmediatags/],
     },
+    outDir: 'dist',
   },
 });

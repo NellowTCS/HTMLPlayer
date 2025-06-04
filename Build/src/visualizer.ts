@@ -56,7 +56,7 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
       if (p5Instance) {
         p5Instance.remove();
       }
-      p5Instance = new p5(sketch, canvas);
+      p5Instance = new p5.default(sketch, canvas);
     }
   });
 }
