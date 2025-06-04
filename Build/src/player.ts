@@ -30,7 +30,7 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
     }
   }, 100);
 
-  document.getElementById('playPause')?.addEventListener('click', () => {
+  document.getElementById('playPauseBtn')?.addEventListener('click', () => {
     const currentTrack = store.getState().currentTrack;
     if (!currentTrack) {
       console.warn('No track selected');
@@ -144,15 +144,11 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
         const blobUrl = URL.createObjectURL(blob);
 
         // Use Howler's Howl constructor
-        howl = new Howler.Howl({
+        howl = new Howl({
           src: [blobUrl],
           html5: true,
           format: ['mp3', 'wav', 'ogg', 'm4a'],
           preload: true,
-          buffer: true,
-          onunload: () => {
-            URL.revokeObjectURL(blobUrl);
-          },
           onload: () => {
             console.log('Track loaded successfully');
           },
@@ -161,9 +157,21 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
           },
           onplay: () => {
             store.getState().setIsPlaying(true);
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            if (playIcon && pauseIcon) {
+              playIcon.style.display = 'none';
+              pauseIcon.style.display = '';
+            }
           },
           onpause: () => {
             store.getState().setIsPlaying(false);
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            if (playIcon && pauseIcon) {
+              playIcon.style.display = '';
+              pauseIcon.style.display = 'none';
+            }
           },
           onend: async () => {
             if (isRepeatMode) {

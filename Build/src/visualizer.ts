@@ -1,13 +1,13 @@
-import * as p5 from 'p5';
-import * as howlerimport from 'howler';
-const { Howl } = howlerimport;
+import p5 from 'p5';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { loadSettings } from './storage';
 
+// Just use Howl as a global
+let howl: Howl | null = null;
+
 export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
   const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
-  let howl: Howl | null = null;
 
   const sketch = (p: p5) => {
     let analyser: AnalyserNode | undefined;
@@ -32,8 +32,8 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
         analyser.getByteFrequencyData(dataArray);
         p.fill(255);
         for (let i = 0; i < bufferLength; i++) {
-          const x = p.map(i, 0, bufferLength, 0, p.width, true);
-          const y = p.map(dataArray[i], 0, 255, p.height, 0, true);
+          const x = p.map(i, 0, bufferLength, 0, (p as any).width, true);
+          const y = p.map(dataArray[i], 0, 255, (p as any).height, 0, true);
           p.circle(x, y, 5);
         }
       }
@@ -52,6 +52,7 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
       howl.stop();
       howl.unload();
       }
+      // Just use Howl as a global
       howl = new Howl({ src: [state.currentTrack], html5: true });
 
       if (sketchInstance) {

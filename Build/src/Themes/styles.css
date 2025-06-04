@@ -41,13 +41,6 @@ button, input {
   @apply bg-gray-900;
 }
 
-/* Global Reset & Base Styles */
-:root {
-  --primary-color: #3b82f6;
-  --background-color: #121212;
-  --text-color: #f1f1f1;
-}
-
 @layer base {
   * {
     @apply m-0 p-0 box-border;
