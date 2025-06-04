@@ -47,6 +47,11 @@ export default defineConfig({
     }
   },
   plugins: [
-    commonjs()
+    commonjs({
+      dynamicRequireTargets: [
+        'node_modules/jsmediatags/dist/jsmediatags.min.js',
+      ],
+      ignoreDynamicRequires: false,
+    })
   ]
 });

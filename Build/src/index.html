@@ -110,6 +110,37 @@
   <div id="processingPopup">Processing... 0/0</div>
   <audio id="audio" preload="metadata"></audio>
   
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-content" id="settingsContent">
+      <!-- Dynamic settings content will be injected here -->
+    </div>
+    <button id="closeSettings" aria-label="Close Settings">Close</button>
+  </div>
+
+  <!-- PLaylist Name Overlay -->
+  <div id="playlistNameModal" class="hidden" style="
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #222;
+    border: 1px solid #666;
+    padding: 1rem;
+    z-index: 1000;
+  ">
+    <label for="playlistNameInput" style="display:block; margin-bottom: 0.5rem; color: white;">
+      Playlist name:
+    </label>
+    <input type="text" id="playlistNameInput" style="width: 100%; margin-bottom: 1rem;">
+    <button id="savePlaylistNameBtn" style="margin-right: 0.5rem;">Save</button>
+    <button id="cancelPlaylistNameBtn">Cancel</button>
+  </div>
+
+  <!-- Settings Button -->
+  <button id="settingsBtn">Settings</button>
+
+  <!-- Your script -->
   <script type="module" src="./main.ts"></script>
+</body>
 </body>
 </html>

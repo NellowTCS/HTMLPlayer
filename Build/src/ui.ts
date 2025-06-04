@@ -5,7 +5,7 @@ import { debounce } from 'lodash';
 export function initUI(store: UseBoundStore<StoreApi<AppState>>) {
   // Cache DOM elements
   const elements = {
-    playPause: document.getElementById('playPause') as HTMLElement,
+    playPause: document.getElementById('playPauseBtn') as HTMLElement,
     progress: document.getElementById('progress') as HTMLInputElement,
     // Add other elements
   };

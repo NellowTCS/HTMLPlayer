@@ -26,7 +26,7 @@ export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
       .join('');
   };
 
-  document.getElementById('addMusic')?.addEventListener('click', async () => {
+  document.getElementById('uploadBtn')?.addEventListener('click', async () => {
     const files = await fileOpen({ mimeTypes: ['audio/*'], multiple: true });
     addingPopup.classList.remove('hidden');
 

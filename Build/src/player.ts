@@ -42,11 +42,11 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
     }
   });
 
-  document.getElementById('next')?.addEventListener('click', () => {
+  document.getElementById('nextBtn')?.addEventListener('click', () => {
     // Implement next track logic
   });
 
-  document.getElementById('prev')?.addEventListener('click', () => {
+  document.getElementById('prevBtn')?.addEventListener('click', () => {
     // Implement previous track logic
   });
 
