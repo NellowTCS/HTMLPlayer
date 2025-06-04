@@ -31,6 +31,7 @@
     "@tailwindcss/postcss": "^4.1.8",
     "@types/howler": "^2.2.12",
     "@types/jsmediatags": "^3.9.6",
+    "@types/localforage": "^0.0.33",
     "@types/lodash": "^4.17.17",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^22.15.29",

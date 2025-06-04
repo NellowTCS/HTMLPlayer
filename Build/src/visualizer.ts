@@ -1,6 +1,6 @@
-import * as p5 from 'p5';
-import * as Howler from 'howler';
-const Howl = Howler.Howl;
+import type p5Type from 'p5';
+const p5 = require('p5');
+const { Howl } = require('howler');
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { loadSettings } from './storage';
@@ -8,9 +8,9 @@ import { loadSettings } from './storage';
 export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
   const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
   let howl: Howl | null = null;
-  let p5Instance: p5 | null = null;
+  let p5Instance: p5Type | null = null;
 
-  const sketch = (p: p5) => {
+  const sketch = (p: p5Type) => {
     let analyser: AnalyserNode | undefined;
 
     p.setup = () => {

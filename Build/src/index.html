@@ -4,64 +4,112 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HTMLPlayer</title>
+  <!-- <link rel="shortcut icon" type="image/x-icon" href="favicon.png"> -->
+  <!-- <link rel="apple-touch-icon" href="/favicon.png"> -->
+  <!-- <link rel="manifest" href="manifest.json"> -->
   <link rel="stylesheet" href="./Themes/styles.css">
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-  <header class="p-4">
-    <h1 class="text-2xl font-bold">HTMLPlayer</h1>
-    <button id="settingsBtn" aria-label="Open settings" class="p-2">
-      <i class="fas fa-gear"></i>
-    </button>
-  </header>
-  <main class="flex flex-col md:flex-row gap-4 p-4">
-    <div id="playlists" class="w-full md:w-1/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
-      <h2 class="text-xl font-semibold">Playlists</h2>
-      <button id="addPlaylist" aria-label="Add playlist" class="p-2"><i class="fas fa-plus"></i> Add Playlist</button>
-      <button id="setPlaylistArt" aria-label="Set playlist art" class="p-2"><i class="fas fa-image"></i> Set Playlist Art</button>
-      <button id="toggleBulkDelete" aria-label="Toggle bulk delete" class="p-2"><i class="fas fa-trash"></i> Toggle Bulk Delete</button>
-      <div id="bulkDeleteActions" class="hidden">
-        <button id="deleteSelectedPlaylists" aria-label="Delete selected playlists" class="p-2">Delete Selected</button>
-        <button id="deleteAllPlaylists" aria-label="Delete all playlists" class="p-2">Delete All</button>
+<body>
+  <header>HTMLPlayer</header>
+  <div id="container">
+    <!-- Playlist Panel -->
+    <div id="playlistPanel">
+      <h2>Playlists</h2>
+      <ul id="playlistNames"></ul>
+      <input type="text" id="newPlaylistName" placeholder="New Playlist Name">
+      <button id="addPlaylist">Add Playlist</button>
+      <button id="setPlaylistArt">Set Playlist Art</button>
+      <input type="file" id="playlistArtInput" accept="image/*">
+      <button id="togglePlaylistBulk">Toggle Bulk Delete</button>
+      <div id="playlistBulkControls">
+        <button id="deleteSelectedPlaylists">Delete Selected</button>
+        <button id="deleteAllPlaylists">Delete All</button>
       </div>
     </div>
-    <div id="tracks" class="w-full md:w-2/3 bg-white dark:bg-gray-800 p-4 rounded shadow">
-      <button id="toggleBulkDeleteTracks" aria-label="Toggle bulk delete tracks" class="p-2"><i class="fas fa-trash"></i> Toggle Bulk Delete Tracks</button>
-      <div id="bulkDeleteTracksActions" class="hidden">
-        <button id="deleteSelectedTracks" aria-label="Delete selected tracks" class="p-2">Delete Selected</button>
-        <button id="deleteAllTracks" aria-label="Delete all tracks" class="p-2">Delete All</button>
+    <!-- Main Player Area -->
+    <div id="mainPlayer">
+      <button id="toggleTrackBulk">Toggle Bulk Delete Tracks</button>
+      <div id="trackBulkControls">
+        <button id="deleteSelectedTracks">Delete Selected</button>
+        <button id="deleteAllTracks">Delete All</button>
       </div>
-      <div id="trackList"></div>
-    </div>
-    <div id="player" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 shadow">
-      <div class="flex items-center gap-4">
-        <button id="playPause" aria-label="Play or pause" class="p-2"><i class="fas fa-play"></i></button>
-        <button id="prev" aria-label="Previous track" class="p-2"><i class="fas fa-backward"></i></button>
-        <button id="next" aria-label="Next track" class="p-2"><i class="fas fa-forward"></i></button>
-        <input id="progress" type="range" min="0" max="100" value="0" aria-label="Track progress" class="w-full">
-        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
-        <button id="volumeBtn" aria-label="Toggle mute" class="p-2"><i class="fas fa-volume-up"></i></button>
-        <input id="volume" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume" class="w-24">
+      <div id="trackList">
+        <ul id="tracks"></ul>
       </div>
-      <canvas id="visualizer" class="w-full h-32 mt-2"></canvas>
+      <!-- Grouped Player Controls -->
+      <div id="playerControls">
+        <!-- Current Track Art -->
+        <div id="currentTrackArt">
+          <img id="currentArtImg" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiMzMzMiIC8+PGxpbmUgeDE9IjAiIHkxPSIwIiB4Mj0iMTAwIiB5Mj0iMTAwIiBzdHJva2U9IiNmMWYxZjEiIHN0cm9rZS13aWR0aD0iNSIgLz48bGluZSB4MT0iMTAwIiB5MT0iMCIgeDI9IjAiIHkyPSIxMDAiIHN0cm9rZT0iI2YxZjFmMSIgc3Ryb2tlLXdpZHRoPSI1IiAvPjwvc3ZnPg==" alt="No Art">
+        </div>
+        <!-- Inner Controls -->
+        <div id="innerControls">
+          <div id="controls">
+            <button id="shuffleBtn" title="Shuffle" class="toggle-btn">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M4,4 L10,4 L14,10 L10,16 L4,16" fill="none" stroke="#fff" stroke-width="2"/>
+                <polyline points="14,4 20,4 20,10" fill="none" stroke="#fff" stroke-width="2"/>
+                <polyline points="14,16 20,16 20,20" fill="none" stroke="#fff" stroke-width="2"/>
+              </svg>
+              <svg class="indicator-dot" viewBox="0 0 8 8">
+                <circle cx="4" cy="4" r="4" fill="#2196F3"/>
+              </svg>
+            </button>
+            <button id="prevBtn" title="Previous">
+              <svg class="icon" viewBox="0 0 24 24">
+                <polygon points="15,18 9,12 15,6" />
+              </svg>
+            </button>
+            <button id="playPauseBtn" title="Play/Pause">
+              <svg class="icon" id="playIcon" viewBox="0 0 24 24">
+                <polygon points="8,5 19,12 8,19" />
+              </svg>
+              <svg class="icon" id="pauseIcon" viewBox="0 0 24 24" style="display:none;">
+                <rect x="6" y="5" width="4" height="14"/>
+                <rect x="14" y="5" width="4" height="14"/>
+              </svg>
+            </button>
+            <button id="nextBtn" title="Next">
+              <svg class="icon" viewBox="0 0 24 24">
+                <polygon points="9,6 15,12 9,18" />
+              </svg>
+            </button>
+            <button id="repeatBtn" title="Repeat" class="toggle-btn">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M17 1l4 4-4 4M7 23l-4-4 4-4" fill="none" stroke="#fff" stroke-width="2"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h10" fill="none" stroke="#fff" stroke-width="2"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H7" fill="none" stroke="#fff" stroke-width="2"/>
+              </svg>
+              <svg class="indicator-dot" viewBox="0 0 8 8">
+                <circle cx="4" cy="4" r="4" fill="#2196F3"/>
+              </svg>
+            </button>
+          </div>
+          <div id="progressContainer">
+            <div id="progress"></div>
+          </div>
+          <div id="timeDisplay">0:00 / 0:00</div>
+          <div id="volumeContainer">
+            <svg class="icon" viewBox="0 0 24 24">
+              <polygon points="5,9 9,9 13,5 13,19 9,15 5,15" />
+            </svg>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+          </div>
+        </div>
+      </div>
+      
+      <!-- Add Music Button -->
+      <button id="uploadBtn">Add Music</button>
+      <input type="file" id="fileInput" accept="audio/mp3, audio/ogg, audio/m4a" multiple>
+      <!-- <button id="install-button" hidden>Install App</button> -->
     </div>
-  </main>
-  <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center" role="dialog" aria-modal="true">
-    <div class="bg-white dark:bg-gray-800 p-6 rounded shadow w-full max-w-md">
-      <h2 class="text-xl font-semibold">Settings</h2>
-      <div id="settingsContent"></div>
-      <button id="closeSettings" aria-label="Close settings" class="p-2"><i class="fas fa-times"></i></button>
-    </div>
   </div>
-  <div id="addingPopup" class="hidden fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded shadow">
-    Adding... <span id="addingCount">0</span> entries
-  </div>
-  <div id="processingPopup" class="hidden fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded shadow">
-    Processing... <span id="processingProgress">0/0</span>
-  </div>
-  <button id="addMusic" aria-label="Add music" class="fixed bottom-4 right-4 p-2"><i class="fas fa-music"></i> Add Music</button>
-  <button id="installApp" aria-label="Install app" class="fixed bottom-4 right-20 p-2"><i class="fas fa-download"></i> Install App</button>
-
-
+  
+  <!-- Popups for Adding and Processing -->
+  <div id="addingPopup">Adding... 0 entries</div>
+  <div id="processingPopup">Processing... 0/0</div>
+  <audio id="audio" preload="metadata"></audio>
+  
   <script type="module" src="./main.ts"></script>
 </body>
 </html>

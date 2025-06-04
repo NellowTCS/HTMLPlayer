@@ -1,5 +1,4 @@
-import * as Howler from 'howler';
-const Howl = Howler.Howl;
+const { Howl } = require('howler');
 import { debounce } from 'lodash-es';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
@@ -70,6 +69,7 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
       });
       currentTrackUrl = state.currentTrack;
       const pos = await loadPlaybackPosition(state.currentTrack);
+      if (!howl) {console.error('Howl instance is null'); return;}
       if (pos !== null) howl.seek(pos);
       howl.play();
       intervalId = setInterval(updateProgress, 100);

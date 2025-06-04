@@ -42,17 +42,26 @@ button, input {
 }
 
 /* Global Reset & Base Styles */
+:root {
+  --primary-color: #3b82f6;
+  --background-color: #121212;
+  --text-color: #f1f1f1;
+}
+
 @layer base {
   * {
     @apply m-0 p-0 box-border;
   }
   body {
-    @apply bg-neutral-900 text-gray-100 font-sans overflow-hidden;
+    @apply bg-[#121212] text-[#f1f1f1] font-sans overflow-hidden;
   }
 }
 
 header {
-  @apply bg-gradient-to-r from-blue-600 to-cyan-400 px-5 py-4 text-center text-2xl font-bold text-white shadow-md rounded-b-lg;
+  @apply bg-gradient-to-r from-[#2196F3] to-[#21CBF3] px-5 py-4 text-center text-2xl font-bold text-white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 #container {
@@ -60,7 +69,9 @@ header {
 }
 
 #playlistPanel {
-  @apply w-[280px] h-[75%] bg-neutral-800 p-4 border-r border-gray-800 overflow-y-auto rounded-tl-lg rounded-bl-lg;
+  @apply w-[280px] h-[75%] bg-[#1c1c1c] p-4 border-r border-[#333] overflow-y-auto;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
 }
 #playlistPanel h2 {
   @apply text-xl mb-2 border-b border-gray-800 pb-1;
@@ -97,10 +108,16 @@ header {
 }
 
 #mainPlayer {
-  @apply flex flex-col flex-1 p-4 pb-32 relative rounded-tr-lg rounded-br-lg;
+  @apply flex flex-col flex-1 p-4 pb-32 relative;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 #toggleTrackBulk {
-  @apply w-[180px] py-1 border-none bg-blue-600 text-white text-sm rounded-md cursor-pointer transition-colors mb-1 self-center hover:bg-blue-700;
+  @apply w-[180px] py-1 border-none bg-[#2196F3] text-white text-sm rounded-md cursor-pointer mb-1 self-center;
+  transition: background 0.2s;
+}
+#toggleTrackBulk:hover {
+  @apply bg-[#1976D2];
 }
 #trackBulkControls {
   @apply hidden mb-1 self-center;
@@ -115,10 +132,11 @@ header {
   @apply list-none;
 }
 #tracks li {
-  @apply flex items-center p-2 mb-1 bg-neutral-800 rounded-lg cursor-pointer transition-colors relative hover:bg-neutral-700;
+  @apply flex items-center p-2 mb-1 bg-[#1e1e1e] rounded-lg cursor-pointer relative;
+  transition: background 0.2s;
 }
-#tracks li.active {
-  @apply bg-neutral-700;
+#tracks li:hover, #tracks li.active {
+  @apply bg-[#2a2a2a];
 }
 #tracks li img {
   @apply w-10 h-10 rounded-md object-cover mr-2;
@@ -154,16 +172,20 @@ header {
   @apply flex justify-center items-center gap-[clamp(15px,2vw,25px)] mb-1;
 }
 #controls button {
-  @apply bg-none border-none cursor-pointer p-2 rounded-full transition-colors relative hover:bg-white/10;
+  @apply bg-none border-none cursor-pointer p-2 rounded-full transition-colors relative;
+}
+#controls button:hover {
+  @apply bg-white/10;
 }
 .icon {
   @apply w-8 h-8 fill-white;
 }
 .toggle-btn.active {
-  @apply bg-blue-600/30;
+  background: rgba(33,150,243,0.3);
 }
 #shuffleBtn .icon, #repeatBtn .icon {
-  @apply fill-white stroke-white;
+  fill: white !important;
+  stroke: white !important;
 }
 #shuffleBtn.active .icon, #repeatBtn.active .icon {
   @apply fill-white stroke-white;
@@ -175,10 +197,11 @@ header {
   @apply block;
 }
 #progressContainer {
-  @apply w-[70vw] max-w-[800px] h-2 bg-gray-800 rounded mx-auto mb-1 cursor-pointer relative;
+  @apply w-[70vw] max-w-[800px] h-2 bg-[#333] rounded mx-auto mb-1 cursor-pointer relative;
 }
 #progress {
-  @apply bg-blue-600 h-full w-0 rounded transition-all;
+  @apply bg-[#2196F3] h-full w-0 rounded;
+  transition: width 0.1s;
 }
 #timeDisplay {
   @apply text-center text-sm mb-1;
@@ -198,8 +221,47 @@ header {
 #addingPopup, #processingPopup {
   @apply fixed left-5 bg-black/70 text-white px-4 py-2 rounded text-sm z-[1000] hidden;
 }
-#addingPopup { bottom: 16; }
-#processingPopup { bottom: 5; }
+#addingPopup { bottom: 60px; }
+#processingPopup { bottom: 20px; }
+
+/* Volume Slider Customization */
+#volumeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: #333;
+  outline: none;
+}
+
+#volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2196F3;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#volumeSlider::-webkit-slider-thumb:hover {
+  background: #1976D2;
+}
+
+#volumeSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #2196F3;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#volumeSlider::-moz-range-thumb:hover {
+  background: #1976D2;
+}
 
 /* Responsive Styles */
 @media (max-width: 768px) {

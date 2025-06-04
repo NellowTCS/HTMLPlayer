@@ -6,6 +6,13 @@ import { initPlaylists } from './playlists';
 import { initTracks } from './tracks';
 import { initUI } from './ui';
 
+// Ensure required globals
+declare global {
+  interface Window {
+    jsmediatags: any;
+  }
+}
+
 // Define global state
 export interface AppState {
   currentTrack: string | null;
