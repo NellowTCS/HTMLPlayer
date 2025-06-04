@@ -1,5 +1,4 @@
-import * as howlerimport from 'howler';
-const { Howl } = howlerimport;
+import { Howl } from 'howler';
 import { debounce } from 'lodash-es';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';

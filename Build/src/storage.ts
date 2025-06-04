@@ -11,6 +11,9 @@ interface Track {
   id: string;
   url: string;
   title: string;
+  art?: string;
+  rating?: number;
+  deleted?: boolean;
 }
 
 interface Settings {
@@ -53,7 +56,8 @@ export async function saveTrack(track: Track) {
 
 export async function loadTracks(): Promise<Track[]> {
   const db = await dbPromise;
-  return await db.getAll('tracks');
+  const tracks = await db.getAll('tracks');
+  return tracks.filter(track => !track.deleted);
 }
 
 // Settings
