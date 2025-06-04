@@ -1,4 +1,3 @@
-import type p5Type from 'p5';
 const p5 = require('p5');
 const { Howl } = require('howler');
 import { StoreApi, UseBoundStore } from 'zustand';
@@ -8,9 +7,9 @@ import { loadSettings } from './storage';
 export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
   const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
   let howl: Howl | null = null;
-  let p5Instance: p5Type | null = null;
+  let p5Instance: typeof p5 | null = null;
 
-  const sketch = (p: p5Type) => {
+  const sketch = (p: typeof p5) => {
     let analyser: AnalyserNode | undefined;
 
     p.setup = () => {
@@ -56,7 +55,7 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
       if (p5Instance) {
         p5Instance.remove();
       }
-      p5Instance = new p5.default(sketch, canvas);
+      p5Instance = new p5(sketch, canvas);
     }
   });
 }

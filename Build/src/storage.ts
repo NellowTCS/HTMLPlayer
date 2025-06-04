@@ -1,5 +1,5 @@
 const localforage = require('localforage');
-const sanitize = require('sanitize-html');
+const sanitizeHtml = require('sanitize-html');
 
 interface Playlist {
   id: string;
@@ -23,13 +23,13 @@ localforage.config({ name: 'HTMLPlayer' });
 export async function savePlaylist(playlist: Playlist) {
   await localforage.setItem(`playlist:${playlist.id}`, {
     ...playlist,
-    name: sanitize(playlist.name),
+    name: sanitizeHtml(playlist.name),
   });
 }
 
 export async function loadPlaylists(): Promise<Playlist[]> {
   const playlists: Playlist[] = [];
-  await localforage.iterate((value: Playlist, key: any) => {
+  await localforage.iterate((value: Playlist, key: string) => {
     if (key.startsWith('playlist:')) playlists.push(value);
   });
   return playlists;
@@ -38,13 +38,13 @@ export async function loadPlaylists(): Promise<Playlist[]> {
 export async function saveTrack(track: Track) {
   await localforage.setItem(`track:${track.id}`, {
     ...track,
-    title: sanitize(track.title),
+    title: sanitizeHtml(track.title),
   });
 }
 
 export async function loadTracks(): Promise<Track[]> {
   const tracks: Track[] = [];
-  await localforage.iterate((value: Track, key: any) => {
+  await localforage.iterate((value: Track, key: string) => {
     if (key.startsWith('track:')) tracks.push(value);
   });
   return tracks;

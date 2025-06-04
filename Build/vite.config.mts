@@ -9,19 +9,38 @@ export default defineConfig({
   },
   plugins: [
     commonjs({
-      include: [/node_modules/], // already includes jsmediatags
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+      requireReturnsDefault: true,
+      dynamicRequireTargets: [
+        'node_modules/localforage/dist/localforage.js',
+        'node_modules/sanitize-html/index.js',
+        'node_modules/howler/dist/howler.js',
+        'node_modules/jsmediatags/dist/jsmediatags.min.js'
+      ]
     }),
   ],
   optimizeDeps: {
-    include: ['jsmediatags'], // pre-bundle jsmediatags during dev
+    include: [
+      'jsmediatags',
+      'localforage',
+      'sanitize-html',
+      'howler',
+    ],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
   },
   build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+      requireReturnsDefault: true
+    },
     rollupOptions: {
       input: 'src/index.html',
     },
-    commonjsOptions: {
-      include: [/node_modules/, /jsmediatags/],
-    },
-    outDir: 'dist',
   },
 });
