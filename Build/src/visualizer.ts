@@ -7,13 +7,31 @@ import { loadSettings } from './storage';
 let howl: Howl | null = null;
 
 export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
-  const canvas = document.getElementById('visualizer') as HTMLCanvasElement;
+  const canvas = document.getElementById('visualizer');
+  if (!canvas) {
+    console.error('Visualizer canvas element not found');
+    return;
+  }
+
+  const container = canvas.parentElement;
+  if (!container) {
+    console.error('Visualizer container element not found');
+    return;
+  }
 
   const sketch = (p: p5) => {
     let analyser: AnalyserNode | undefined;
 
     p.setup = () => {
-      p.createCanvas(canvas.offsetWidth, canvas.offsetHeight, canvas);
+      // Create canvas with the container's dimensions
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      const canvas = p.createCanvas(width, height, p.WEBGL);
+      canvas.parent(container);
+      
+      // Set the renderer attributes
+      p.setAttributes('antialias', true);
+      
       const audioContext = (howl as any)?._sounds[0]?._node?.context as AudioContext | undefined;
       if (audioContext) {
         analyser = audioContext.createAnalyser();
@@ -40,7 +58,8 @@ export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
     };
 
     p.windowResized = () => {
-      p.resizeCanvas(canvas.offsetWidth, canvas.offsetHeight, true);
+      // Resize canvas when window is resized
+      p.resizeCanvas(container.clientWidth, container.clientHeight, true);
     };
   };
 
