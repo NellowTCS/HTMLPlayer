@@ -1,9 +1,9 @@
-import * as Howler from 'howler';
-const { Howl } = Howler;
 import { debounce } from 'lodash-es';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { savePlaybackPosition, loadPlaybackPosition, loadTracks } from './storage';
+
+declare const Howl: any; // Declare Howl as a global
 
 interface Track {
   id: string;
@@ -135,7 +135,7 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
           onload: () => {
             console.log('Track loaded successfully');
           },
-          onloaderror: (id, error) => {
+          onloaderror: (id: number, error: Error) => {
             console.error('Error loading track:', error);
           },
           onplay: () => {
@@ -176,7 +176,6 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
         currentTrackUrl = null;
         howl = null;
       }
-      intervalId = setInterval(updateProgress, 100);
     }
   });
 }
