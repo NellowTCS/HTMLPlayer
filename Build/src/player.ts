@@ -46,11 +46,14 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
     if (!howl) {
       // If we don't have a howl instance but we have a track, create one
       store.getState().setCurrentTrack(currentTrack); // This will trigger the store subscription
-    } else if (howl) {
+    } else {
       if (howl.playing()) {
         howl.pause();
       } else {
-        howl.play();
+        // Prevent double playback: only call play if not already playing
+        if (!howl.playing()) {
+          howl.play();
+        }
       }
     }
   });
@@ -135,6 +138,7 @@ export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
       if (howl) {
         howl.stop();
         howl.unload();
+        howl = null; // Ensure reference is cleared
       }
       if (intervalId) {
         clearInterval(intervalId);

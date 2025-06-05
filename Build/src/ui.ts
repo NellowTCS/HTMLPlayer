@@ -10,11 +10,6 @@ export function initUI(store: UseBoundStore<StoreApi<AppState>>) {
     // Add other elements
   };
 
-  // Update play/pause icon
-  store.subscribe((state) => {
-    elements.playPause.innerHTML = `<i class="fas fa-${state.isPlaying ? 'pause' : 'play'}"></i>`;
-  });
-
   // Theme switching
   store.subscribe((state) => {
     document.documentElement.setAttribute('data-theme', state.theme);

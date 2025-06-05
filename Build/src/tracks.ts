@@ -216,6 +216,41 @@ export function initTracks(store: UseBoundStore<StoreApi<AppState>>) {
     });
   });
 
+  // Helper: process directory handle and add audio files
+  async function processDirectoryHandle(dirHandle: any) {
+    addingPopup.classList.remove('hidden');
+    let count = 0;
+    for await (const entry of dirHandle.values()) {
+      if (entry.kind === 'file' && (entry.name.endsWith('.mp3') || entry.name.endsWith('.ogg') || entry.name.endsWith('.m4a'))) {
+        const file = await entry.getFile();
+        const id = uuidv4();
+        const url = URL.createObjectURL(file);
+        try {
+          const tags = await readTags(file);
+          await saveTrack({ 
+            id, 
+            url, 
+            title: tags.title || file.name,
+            art: tags.art
+          });
+        } catch (error) {
+          await saveTrack({ id, url, title: file.name });
+        }
+        count++;
+        addingPopup.textContent = `Adding... ${count} entries`;
+      }
+    }
+    await renderTracks();
+    addingPopup.classList.add('hidden');
+  }
+
+  // Listen for the custom event from main.ts
+  window.addEventListener('music-directory-selected', async (e: any) => {
+    if (e.detail) {
+      await processDirectoryHandle(e.detail);
+    }
+  });
+
   // Initial render
   renderTracks();
 }

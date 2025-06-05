@@ -31,6 +31,7 @@ async function initApp() {
   initVisualizer(useStore);
   initPlaylists(useStore);
   initTracks(useStore);
+  setupAddMusicButton();
 
   document.addEventListener('keydown', (e) => {
     if (e.code === 'Space') {
@@ -41,4 +42,31 @@ async function initApp() {
   });
 }
 
+// Directory picker + file input fallback for Add Music
+function setupAddMusicButton() {
+  const uploadBtn = document.getElementById('uploadBtn');
+  const fileInput = document.getElementById('fileInput') as HTMLInputElement;
+
+  if (!uploadBtn || !fileInput) return;
+
+  uploadBtn.addEventListener('click', async () => {
+    if ('showDirectoryPicker' in window) {
+      try {
+        // @ts-ignore
+        const dirHandle = await (window as any).showDirectoryPicker();
+        // Dispatch a custom event or call a handler to process the directory
+        const event = new CustomEvent('music-directory-selected', { detail: dirHandle });
+        window.dispatchEvent(event);
+      } catch (e) {
+        // User cancelled or error, fallback to file input
+        fileInput.click();
+      }
+    } else {
+      // Fallback: file input
+      fileInput.click();
+    }
+  });
+}
+
+// Call this in initApp
 initApp();
