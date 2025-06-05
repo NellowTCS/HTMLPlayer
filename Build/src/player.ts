@@ -9,7 +9,13 @@ import {
   revokeAudioBlobUrl
 } from './storage';
 
-declare const Howler: any;
+// Add proper Howl type declaration
+declare global {
+  interface Window {
+    Howl: any;
+    Howler: any;
+  }
+}
 
 interface Track {
   id: string;
@@ -51,19 +57,34 @@ class PlayerUI {
   private playIcon = document.getElementById('playIcon') as HTMLElement;
   private pauseIcon = document.getElementById('pauseIcon') as HTMLElement;
 
+  // Refresh element references in case DOM changes
+  private refreshElements() {
+    this.progressEl = document.getElementById('progress') as HTMLInputElement;
+    this.currentTimeEl = document.getElementById('currentTime') as HTMLElement;
+    this.durationEl = document.getElementById('duration') as HTMLElement;
+    this.playIcon = document.getElementById('playIcon') as HTMLElement;
+    this.pauseIcon = document.getElementById('pauseIcon') as HTMLElement;
+  }
+
   updateProgress(position: number, duration: number) {
-    if (this.progressEl) {
-      this.progressEl.value = ((position / duration) * 100).toString();
-    }
-    if (this.currentTimeEl) {
-      this.currentTimeEl.textContent = this.formatTime(position);
-    }
-    if (this.durationEl) {
-      this.durationEl.textContent = this.formatTime(duration);
-    }
+    requestAnimationFrame(() => {
+      this.refreshElements();
+      
+      if (this.progressEl && !isNaN(position) && !isNaN(duration) && duration > 0) {
+        this.progressEl.value = ((position / duration) * 100).toString();
+      }
+      if (this.currentTimeEl) {
+        this.currentTimeEl.textContent = this.formatTime(position);
+      }
+      if (this.durationEl) {
+        this.durationEl.textContent = this.formatTime(duration);
+      }
+    });
   }
 
   updatePlayState(isPlaying: boolean) {
+    this.refreshElements();
+    
     if (this.playIcon && this.pauseIcon) {
       this.playIcon.style.display = isPlaying ? 'none' : '';
       this.pauseIcon.style.display = isPlaying ? '' : 'none';
@@ -71,10 +92,12 @@ class PlayerUI {
   }
 
   getProgressValue(): number {
-    return this.progressEl ? parseFloat(this.progressEl.value) : 0;
+    this.refreshElements();
+    return this.progressEl ? parseFloat(this.progressEl.value) || 0 : 0;
   }
 
   private formatTime(seconds: number): string {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
     const min = Math.floor(seconds / 60);
     const sec = Math.floor(seconds % 60);
     return `${min}:${sec.toString().padStart(2, '0')}`;
@@ -86,32 +109,42 @@ class TrackNavigator {
   constructor(private playerState: PlayerState) {}
 
   async getNextTrack(currentTrackUrl: string | null): Promise<string | null> {
-    const tracks = await loadTracks();
-    if (tracks.length === 0) return null;
-    
-    const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
-    
-    if (this.playerState.isShuffleMode) {
-      return this.getRandomTrack(tracks, currentTrackUrl);
+    try {
+      const tracks = await loadTracks();
+      if (tracks.length === 0) return null;
+      
+      const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
+      
+      if (this.playerState.isShuffleMode) {
+        return this.getRandomTrack(tracks, currentTrackUrl);
+      }
+      
+      const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % tracks.length;
+      return tracks[nextIndex].url;
+    } catch (error) {
+      console.error('Error getting next track:', error);
+      return null;
     }
-    
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % tracks.length;
-    return tracks[nextIndex].url;
   }
 
   async getPreviousTrack(currentTrackUrl: string | null): Promise<string | null> {
-    const tracks = await loadTracks();
-    if (tracks.length === 0) return null;
-    
-    const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
-    
-    if (this.playerState.isShuffleMode) {
-      return this.getRandomTrack(tracks, currentTrackUrl);
+    try {
+      const tracks = await loadTracks();
+      if (tracks.length === 0) return null;
+      
+      const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
+      
+      if (this.playerState.isShuffleMode) {
+        return this.getRandomTrack(tracks, currentTrackUrl);
+      }
+      
+      const prevIndex = currentIndex === -1 ? tracks.length - 1 : 
+        (currentIndex - 1 + tracks.length) % tracks.length;
+      return tracks[prevIndex].url;
+    } catch (error) {
+      console.error('Error getting previous track:', error);
+      return null;
     }
-    
-    const prevIndex = currentIndex === -1 ? tracks.length - 1 : 
-      (currentIndex - 1 + tracks.length) % tracks.length;
-    return tracks[prevIndex].url;
   }
 
   private getRandomTrack(tracks: Track[], excludeUrl: string | null): string {
@@ -129,13 +162,14 @@ class TrackNavigator {
 
 // Main audio player class
 class AudioPlayer {
-  private howl: Howl | null = null;
+  private howl: any = null; // Use any for Howl type
   private currentTrackUrl: string | null = null;
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalId: number | null = null; // Use number for browser environment
   private ui = new PlayerUI();
   private playerState = new PlayerState();
   private navigator = new TrackNavigator(this.playerState);
   private isTransitioning = false;
+  private unsubscribe: (() => void) | null = null;
 
   constructor(private store: UseBoundStore<StoreApi<AppState>>) {
     this.initializeEventListeners();
@@ -186,10 +220,14 @@ class AudioPlayer {
     }
 
     if (!this.isTransitioning) {
-      if (this.howl.playing()) {
-        this.howl.pause();
-      } else {
-        this.howl.play();
+      try {
+        if (this.howl.playing()) {
+          this.howl.pause();
+        } else {
+          this.howl.play();
+        }
+      } catch (error) {
+        console.error('Error controlling playback:', error);
       }
     }
   }
@@ -197,36 +235,54 @@ class AudioPlayer {
   private async handleNext() {
     if (this.isTransitioning) return;
     
-    const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
-    if (nextTrackUrl) {
-      this.store.getState().setCurrentTrack(nextTrackUrl);
+    try {
+      const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
+      if (nextTrackUrl) {
+        this.store.getState().setCurrentTrack(nextTrackUrl);
+      }
+    } catch (error) {
+      console.error('Error handling next track:', error);
     }
   }
 
   private async handlePrevious() {
     if (this.isTransitioning) return;
     
-    const prevTrackUrl = await this.navigator.getPreviousTrack(this.currentTrackUrl);
-    if (prevTrackUrl) {
-      this.store.getState().setCurrentTrack(prevTrackUrl);
+    try {
+      const prevTrackUrl = await this.navigator.getPreviousTrack(this.currentTrackUrl);
+      if (prevTrackUrl) {
+        this.store.getState().setCurrentTrack(prevTrackUrl);
+      }
+    } catch (error) {
+      console.error('Error handling previous track:', error);
     }
   }
 
   private handleProgressChange() {
-    if (this.howl && !this.isTransitioning) {
-      const seek = (this.ui.getProgressValue() / 100) * this.howl.duration();
-      this.howl.seek(seek);
+    if (this.howl && !this.isTransitioning && this.howl.duration) {
+      try {
+        const seek = (this.ui.getProgressValue() / 100) * this.howl.duration();
+        this.howl.seek(seek);
+      } catch (error) {
+        console.error('Error seeking:', error);
+      }
     }
   }
 
   private updateProgress = debounce(() => {
-    if (this.howl && this.howl.playing() && !this.isTransitioning) {
-      const pos = this.howl.seek();
-      const dur = this.howl.duration();
-      
-      if (typeof pos === 'number' && typeof dur === 'number' && dur > 0) {
-        this.ui.updateProgress(pos, dur);
-        savePlaybackPosition(this.currentTrackUrl, pos);
+    if (this.howl && this.howl.playing && this.howl.playing() && !this.isTransitioning) {
+      try {
+        const pos = this.howl.seek();
+        const dur = this.howl.duration();
+        
+        if (typeof pos === 'number' && typeof dur === 'number' && dur > 0) {
+          this.ui.updateProgress(pos, dur);
+          savePlaybackPosition(this.currentTrackUrl, pos).catch(error => {
+            console.error('Error saving playback position:', error);
+          });
+        }
+      } catch (error) {
+        console.error('Error updating progress:', error);
       }
     }
   }, 100);
@@ -240,13 +296,21 @@ class AudioPlayer {
     }
 
     if (this.howl) {
-      this.howl.stop();
-      this.howl.unload();
+      try {
+        this.howl.stop();
+        this.howl.unload();
+      } catch (error) {
+        console.error('Error cleaning up howl:', error);
+      }
       this.howl = null;
     }
 
     if (this.currentTrackUrl) {
-      revokeAudioBlobUrl(this.currentTrackUrl);
+      try {
+        revokeAudioBlobUrl(this.currentTrackUrl);
+      } catch (error) {
+        console.error('Error revoking blob URL:', error);
+      }
     }
   }
 
@@ -255,7 +319,12 @@ class AudioPlayer {
       const blobUrl = await getAudioBlobUrl(trackUrl);
       const savedPosition = await loadPlaybackPosition(trackUrl);
 
-      this.howl = new Howl({
+      // Check if Howl is available
+      if (!window.Howl) {
+        throw new Error('Howl.js not loaded');
+      }
+
+      this.howl = new window.Howl({
         src: [blobUrl],
         html5: true,
         format: ['mp3', 'wav', 'ogg', 'm4a'],
@@ -266,12 +335,20 @@ class AudioPlayer {
           
           // Restore playback position
           if (savedPosition !== null && this.howl) {
-            this.howl.seek(savedPosition);
+            try {
+              this.howl.seek(savedPosition);
+            } catch (error) {
+              console.error('Error seeking to saved position:', error);
+            }
           }
           
           // Start playback
-          this.howl?.play();
-          this.intervalId = setInterval(this.updateProgress, 100);
+          try {
+            this.howl?.play();
+            this.intervalId = window.setInterval(this.updateProgress, 100);
+          } catch (error) {
+            console.error('Error starting playback:', error);
+          }
         },
         onloaderror: (id: any, error: any) => {
           console.error('Error loading track:', error);
@@ -304,21 +381,25 @@ class AudioPlayer {
   }
 
   private async handleTrackEnd() {
-    if (this.playerState.isRepeatMode) {
-      this.howl?.play();
-    } else {
-      const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
-      if (nextTrackUrl) {
-        this.store.getState().setCurrentTrack(nextTrackUrl);
+    try {
+      if (this.playerState.isRepeatMode) {
+        this.howl?.play();
       } else {
-        this.store.getState().setCurrentTrack(null);
-        this.store.getState().setIsPlaying(false);
+        const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
+        if (nextTrackUrl) {
+          this.store.getState().setCurrentTrack(nextTrackUrl);
+        } else {
+          this.store.getState().setCurrentTrack(null);
+          this.store.getState().setIsPlaying(false);
+        }
       }
+    } catch (error) {
+      console.error('Error handling track end:', error);
     }
   }
 
   private subscribeToStore() {
-    this.store.subscribe(async (state) => {
+    this.unsubscribe = this.store.subscribe(async (state) => {
       if (state.currentTrack !== this.currentTrackUrl) {
         await this.cleanupCurrentTrack();
         
@@ -334,6 +415,10 @@ class AudioPlayer {
 
   // Public method to cleanup when component unmounts
   destroy() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
+    }
     this.cleanupCurrentTrack();
   }
 }

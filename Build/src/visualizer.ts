@@ -1,4 +1,4 @@
-import WaveSurfer from 'wavesurfer.js';
+import * as d3 from 'd3';
 import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { loadSettings, getAudioBlobUrl } from './storage';
@@ -24,501 +24,755 @@ export interface VisualizerSettings {
   barCount?: number;
 }
 
-let wavesurfer: WaveSurfer | null = null;
-let audioContext: AudioContext | null = null;
-let analyser: AnalyserNode | null = null;
-let dataArray: Uint8Array | null = null;
-let animationId: number | null = null;
-let canvas: HTMLCanvasElement | null = null;
-let ctx: CanvasRenderingContext2D | null = null;
+class VisualizerManager {
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private dataArray: Uint8Array | null = null;
+  private animationId: number | null = null;
+  private container: HTMLElement | null = null;
+  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
+  private currentSettings: VisualizerSettings;
+  private lastTrackUrl: string | null = null;
+  private lastVisualizerType: VisualizerType = 'waveform';
+  private isDestroyed = false;
+  private resizeObserver: ResizeObserver | null = null;
+  private mediaElement: HTMLMediaElement | null = null;
+  private externalAudioNode: AudioNode | null = null;
+  private waveformData: number[] = [];
+  private currentTime = 0;
+  private duration = 0;
 
-const defaultSettings: VisualizerSettings = {
-  type: 'waveform',
-  waveColor: '#4a9eff',
-  progressColor: '#006EE6',
-  backgroundColor: '#000000',
-  height: 128,
-  sensitivity: 1.0,
-  smoothing: 0.8,
-  particleCount: 100,
-  barCount: 64
-};
+  private readonly defaultSettings: VisualizerSettings = {
+    type: 'waveform',
+    waveColor: '#4a9eff',
+    progressColor: '#006EE6',
+    backgroundColor: '#000000',
+    height: 128,
+    sensitivity: 1.0,
+    smoothing: 0.8,
+    particleCount: 100,
+    barCount: 64
+  };
 
-export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
-  const container = document.getElementById('visualizer');
-  if (!container) {
-    console.error('Visualizer container element not found');
-    return;
+  constructor(private store: UseBoundStore<StoreApi<AppState>>) {
+    this.currentSettings = { ...this.defaultSettings };
+    this.initialize();
   }
 
-  // Create canvas for custom visualizers
-  canvas = document.createElement('canvas');
-  canvas.style.width = '100%';
-  canvas.style.height = '100%';
-  ctx = canvas.getContext('2d');
-
-  async function createWaveform(url: string, settings: VisualizerSettings = defaultSettings) {
-    // Cleanup existing instances
-    cleanup();
-
-    if (!container) {
-      console.error('Visualizer container is not available');
+  private initialize() {
+    this.container = document.getElementById('visualizer');
+    if (!this.container) {
+      console.error('Visualizer container element not found');
       return;
     }
-    
-    const userSettings = await loadSettings();
-    const finalSettings = { ...defaultSettings, ...userSettings, ...settings };
-    
-    try {
-      if (finalSettings.type === 'waveform') {
-        await createWaveSurferVisualizer(url, finalSettings, container);
-      } else {
-        await createCustomVisualizer(url, finalSettings, container);
-      }
-    } catch (error) {
-      console.error('Error initializing audio:', error);
-    }
+
+    this.setupSVG();
+    this.setupResizeObserver();
+    this.subscribeToStore();
+    this.setupCleanupHandlers();
   }
 
-  async function createWaveSurferVisualizer(
-    url: string, 
-    settings: VisualizerSettings, 
-    container: HTMLElement
-  ) {
-    wavesurfer = WaveSurfer.create({
-      container: container,
-      waveColor: settings.waveColor,
-      progressColor: settings.progressColor,
-      cursorColor: '#fff',
-      height: settings.height,
-      normalize: true,
-      autoScroll: true,
-      mediaControls: false,
-      interact: true,
-      fillParent: true,
-      dragToSeek: true,
-      renderFunction: (peaks: Array<Float32Array | number[]>, ctx: CanvasRenderingContext2D) => {
-        renderWaveform(peaks, ctx, settings);
-      }
+  private setupSVG() {
+    if (!this.container) return;
+
+    // Clear container
+    d3.select(this.container).selectAll('*').remove();
+
+    // Create SVG with D3
+    this.svg = d3.select(this.container)
+      .append('svg')
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .style('display', 'block');
+
+    this.resizeSVG();
+  }
+
+  private setupResizeObserver() {
+    if (!this.container) return;
+
+    this.resizeObserver = new ResizeObserver(() => {
+      this.handleResize();
     });
+    this.resizeObserver.observe(this.container);
+  }
 
-    setupWaveSurferEvents();
-    const blobUrl = await getAudioBlobUrl(url);
-    await wavesurfer.load(blobUrl);
+  private handleResize() {
+    if (this.isDestroyed) return;
+    this.resizeSVG();
+  }
 
-    if (store.getState().isPlaying) {
-      await wavesurfer.play();
+  private resizeSVG() {
+    if (!this.svg || !this.container) return;
+    
+    const rect = this.container.getBoundingClientRect();
+    this.svg
+      .attr('width', rect.width)
+      .attr('height', rect.height);
+  }
+
+  public async setAudioNode(audioNode: AudioNode) {
+    this.externalAudioNode = audioNode;
+    if (this.analyser) {
+      this.externalAudioNode.connect(this.analyser);
     }
   }
 
-  async function createCustomVisualizer(
-    url: string, 
-    settings: VisualizerSettings, 
-    container: HTMLElement
-  ) {
-    // Clear container and add canvas
-    container.innerHTML = '';
-    if (canvas) {
-      container.appendChild(canvas);
-      resizeCanvas();
+  public setMediaElement(element: HTMLMediaElement) {
+    this.mediaElement = element;
+    if (this.lastTrackUrl) {
+      this.createVisualization(this.lastTrackUrl, this.currentSettings);
+    }
+  }
+
+  private async createVisualization(url: string, settings: VisualizerSettings = this.defaultSettings) {
+    const prevType = this.currentSettings.type;
+    const newType = settings.type;
+    const typeChanged = prevType !== newType;
+    const urlChanged = url !== this.lastTrackUrl;
+
+    // Store current state before cleanup
+    const playbackState = this.getCurrentPlaybackState();
+    
+    // Only do full cleanup if visualization type changes or URL changes
+    if (typeChanged || urlChanged) {
+      await this.cleanup(false);
     }
 
-    // Setup Web Audio API
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    analyser = audioContext.createAnalyser();
-    analyser.fftSize = settings.barCount ? settings.barCount * 4 : 256;
-    analyser.smoothingTimeConstant = settings.smoothing;
-    
-    const bufferLength = analyser.frequencyBinCount;
-    dataArray = new Uint8Array(bufferLength);
+    this.currentSettings = { ...this.currentSettings, ...settings };
+    this.lastTrackUrl = url;
 
-    // Load and connect audio
-    const blobUrl = await getAudioBlobUrl(url);
-    const audio = new Audio(blobUrl);
-    const source = audioContext.createMediaElementSource(audio);
-    source.connect(analyser);
-    analyser.connect(audioContext.destination);
-
-    // Setup audio events
-    audio.addEventListener('play', () => {
-      if (store.getState().isPlaying !== true) {
-        store.getState().setIsPlaying(true);
+    if (typeChanged || urlChanged) {
+      if (this.currentSettings.type === 'waveform') {
+        await this.setupWaveformVisualization(url);
+      } else {
+        await this.setupRealtimeVisualization(url);
       }
-      startAnimation(settings);
+      // Restore state after recreation only if we did a cleanup
+      await this.restorePlaybackState(playbackState);
+    } else {
+      // Just update visualization with new settings
+      if (this.currentSettings.type === 'waveform') {
+        this.renderWaveform();
+      } else if (this.analyser) {
+        this.analyser.smoothingTimeConstant = Math.max(0, Math.min(1, this.currentSettings.smoothing));
+        if (this.currentSettings.type !== 'spectrum') {
+          // Update FFT size for non-spectrum visualizations
+          this.analyser.fftSize = Math.max(256, (this.currentSettings.barCount || 64) * 4);
+          this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+        }
+      }
+    }
+  }
+
+  private async setupWaveformVisualization(url: string) {
+    if (!this.container || !this.svg) return;
+
+    try {
+      // Load audio file and decode to get waveform data
+      const blobUrl = await getAudioBlobUrl(url);
+      const audioBuffer = await this.loadAudioBuffer(blobUrl);
+      
+      // Extract waveform data
+      this.waveformData = this.extractWaveformData(audioBuffer);
+      this.duration = audioBuffer.duration;
+
+      // Create audio element for playback
+      const audio = new Audio(blobUrl);
+      audio.crossOrigin = 'anonymous';
+      (this.container as any).audioElement = audio;
+
+      // Setup audio events
+      this.setupAudioEvents(audio);
+
+      // Render static waveform
+      this.renderWaveform();
+
+      // Start progress tracking
+      this.startProgressTracking();
+
+    } catch (error) {
+      console.error('Error setting up waveform visualization:', error);
+    }
+  }
+
+  private async loadAudioBuffer(url: string): Promise<AudioBuffer> {
+    const response = await fetch(url);
+    const arrayBuffer = await response.arrayBuffer();
+    
+    if (!this.audioContext) {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    
+    return await this.audioContext.decodeAudioData(arrayBuffer);
+  }
+
+  private extractWaveformData(audioBuffer: AudioBuffer, samples = 1000): number[] {
+    const rawData = audioBuffer.getChannelData(0); // Get first channel
+    const blockSize = Math.floor(rawData.length / samples);
+    const filteredData: number[] = [];
+
+    for (let i = 0; i < samples; i++) {
+      const blockStart = blockSize * i;
+      let sum = 0;
+      for (let j = 0; j < blockSize; j++) {
+        sum += Math.abs(rawData[blockStart + j]);
+      }
+      filteredData.push(sum / blockSize);
+    }
+
+    return filteredData;
+  }
+
+  private renderWaveform() {
+    if (!this.svg || !this.container) return;
+
+    const rect = this.container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const middle = height / 2;
+
+    // Clear previous waveform
+    this.svg.selectAll('.waveform-group').remove();
+
+    const waveformGroup = this.svg.append('g').attr('class', 'waveform-group');
+
+    // Create scales
+    const xScale = d3.scaleLinear()
+      .domain([0, this.waveformData.length - 1])
+      .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(this.waveformData) || 1])
+      .range([0, middle * this.currentSettings.sensitivity]);
+
+    // Create waveform bars
+    const barWidth = width / this.waveformData.length;
+
+    waveformGroup.selectAll('.waveform-bar')
+      .data(this.waveformData)
+      .enter()
+      .append('rect')
+      .attr('class', 'waveform-bar')
+      .attr('x', (d, i) => xScale(i))
+      .attr('y', d => middle - yScale(d) / 2)
+      .attr('width', Math.max(1, barWidth - 0.5))
+      .attr('height', d => yScale(d))
+      .attr('fill', this.currentSettings.waveColor);
+
+    // Add progress overlay
+    this.updateWaveformProgress();
+  }
+
+  private updateWaveformProgress() {
+    if (!this.svg || !this.duration) return;
+
+    const rect = this.container!.getBoundingClientRect();
+    const width = rect.width;
+    const progressWidth = (this.currentTime / this.duration) * width;
+
+    // Remove existing progress overlay
+    this.svg.selectAll('.progress-overlay').remove();
+
+    // Add progress overlay
+    this.svg.append('rect')
+      .attr('class', 'progress-overlay')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', progressWidth)
+      .attr('height', '100%')
+      .attr('fill', this.currentSettings.progressColor)
+      .attr('opacity', 0.7)
+      .style('pointer-events', 'none');
+  }
+
+  private startProgressTracking() {
+    const updateProgress = () => {
+      if (this.isDestroyed) return;
+
+      const audioElement = (this.container as any)?.audioElement;
+      if (audioElement) {
+        this.currentTime = audioElement.currentTime;
+        this.updateWaveformProgress();
+        this.updateTimeDisplay();
+      }
+
+      requestAnimationFrame(updateProgress);
+    };
+
+    updateProgress();
+  }
+
+  private async setupRealtimeVisualization(url: string) {
+    if (!this.container || !this.svg) return;
+
+    try {
+      // Setup Web Audio API
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+
+      this.analyser = this.audioContext.createAnalyser();
+      this.analyser.fftSize = Math.max(256, (this.currentSettings.barCount || 64) * 4);
+      this.analyser.smoothingTimeConstant = Math.max(0, Math.min(1, this.currentSettings.smoothing));
+      
+      const bufferLength = this.analyser.frequencyBinCount;
+      this.dataArray = new Uint8Array(bufferLength);
+
+      if (this.externalAudioNode) {
+        this.externalAudioNode.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+      } else {
+        const blobUrl = await getAudioBlobUrl(url);
+        const audio = new Audio(blobUrl);
+        audio.crossOrigin = 'anonymous';
+        
+        const source = this.audioContext.createMediaElementSource(audio);
+        source.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+
+        this.setupAudioEvents(audio);
+        (this.container as any).audioElement = audio;
+      }
+
+      // Start animation
+      if (this.store.getState().isPlaying) {
+        this.startAnimation();
+      }
+
+    } catch (error) {
+      console.error('Error setting up realtime visualization:', error);
+    }
+  }
+
+  private setupAudioEvents(audio: HTMLAudioElement) {
+    audio.addEventListener('play', () => {
+      this.store.getState().setIsPlaying(true);
+      if (this.currentSettings.type !== 'waveform') {
+        this.startAnimation();
+      }
     });
 
     audio.addEventListener('pause', () => {
-      if (store.getState().isPlaying !== false) {
-        store.getState().setIsPlaying(false);
-      }
-      stopAnimation();
+      this.store.getState().setIsPlaying(false);
+      this.stopAnimation();
     });
 
-    // Store audio reference for playback control
-    (container as any).audioElement = audio;
+    audio.addEventListener('timeupdate', () => {
+      this.currentTime = audio.currentTime;
+      this.duration = audio.duration || 0;
+      this.updateTimeDisplay();
+    });
 
-    if (store.getState().isPlaying) {
-      await audio.play();
-    }
+    audio.addEventListener('error', (e) => {
+      console.error('Audio element error:', e);
+      this.store.getState().setIsPlaying(false);
+    });
   }
 
-  function renderWaveform(
-    peaks: Array<Float32Array | number[]>, 
-    ctx: CanvasRenderingContext2D, 
-    settings: VisualizerSettings
-  ) {
-    const height = ctx.canvas.height;
-    const width = ctx.canvas.width;
-    
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = settings.waveColor;
-    
-    const middle = height / 2;
-    const bar = width / peaks[0].length;
-    
-    if (peaks[0] instanceof Float32Array || Array.isArray(peaks[0])) {
-      for (let i = 0; i < peaks[0].length; i++) {
-        const peak = peaks[0][i];
-        const h = Math.abs((peak as number) * height * settings.sensitivity);
-        ctx.fillRect(i * bar, middle - h / 2, bar - 0.5, h);
+  private getCurrentPlaybackState() {
+    let currentTime = 0;
+    let wasPlaying = false;
+
+    const audioElement = (this.container as any)?.audioElement;
+    if (audioElement) {
+      currentTime = audioElement.currentTime || 0;
+      wasPlaying = !audioElement.paused;
+    }
+
+    return { currentTime, wasPlaying };
+  }
+
+  private async restorePlaybackState(state: { currentTime: number; wasPlaying: boolean }) {
+    if (this.isDestroyed) return;
+
+    try {
+      const audioElement = (this.container as any)?.audioElement;
+      if (audioElement) {
+        audioElement.currentTime = state.currentTime;
+        if (state.wasPlaying) {
+          await audioElement.play();
+        }
       }
+    } catch (error) {
+      console.warn('Error restoring playback state:', error);
     }
   }
 
-  function startAnimation(settings: VisualizerSettings) {
-    if (!ctx || !canvas || !analyser || !dataArray) return;
+  private startAnimation() {
+    if (this.isDestroyed || !this.svg || !this.analyser || !this.dataArray) return;
+
+    this.stopAnimation();
 
     const animate = () => {
-      if (!ctx || !canvas || !analyser || !dataArray) return;
+      if (this.isDestroyed || !this.svg || !this.analyser || !this.dataArray) return;
       
-      analyser.getByteFrequencyData(dataArray);
+      this.analyser.getByteFrequencyData(this.dataArray);
       
-      ctx.fillStyle = settings.backgroundColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      // Clear and set background
+      this.svg.selectAll('.visualization-group').remove();
+      this.svg.style('background-color', this.currentSettings.backgroundColor);
       
-      switch (settings.type) {
+      const vizGroup = this.svg.append('g').attr('class', 'visualization-group');
+      
+      // Render based on type
+      switch (this.currentSettings.type) {
         case 'bars':
-          renderBars(ctx, dataArray, settings);
+          this.renderBarsD3(vizGroup, this.dataArray);
           break;
         case 'circular':
-          renderCircular(ctx, dataArray, settings);
+          this.renderCircularD3(vizGroup, this.dataArray);
           break;
         case 'spectrum':
-          renderSpectrum(ctx, dataArray, settings);
+          this.renderSpectrumD3(vizGroup, this.dataArray);
           break;
         case 'mirror':
-          renderMirror(ctx, dataArray, settings);
+          this.renderMirrorD3(vizGroup, this.dataArray);
           break;
         case 'particles':
-          renderParticles(ctx, dataArray, settings);
+          this.renderParticlesD3(vizGroup, this.dataArray);
           break;
       }
       
-      animationId = requestAnimationFrame(animate);
+      this.animationId = requestAnimationFrame(animate);
     };
     
     animate();
   }
 
-  function stopAnimation() {
-    if (animationId) {
-      cancelAnimationFrame(animationId);
-      animationId = null;
-    }
-  }
+  private renderBarsD3(group: d3.Selection<SVGGElement, unknown, null, undefined>, data: Uint8Array) {
+    if (!this.container) return;
 
-  function renderBars(ctx: CanvasRenderingContext2D, data: Uint8Array, settings: VisualizerSettings) {
-    const barCount = settings.barCount || 64;
-    const barWidth = canvas!.width / barCount;
+    const rect = this.container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const barCount = this.currentSettings.barCount || 64;
+    const barWidth = width / barCount;
     const stepSize = Math.floor(data.length / barCount);
-    
-    ctx.fillStyle = settings.waveColor;
-    
-    for (let i = 0; i < barCount; i++) {
-      const barHeight = (data[i * stepSize] / 255) * canvas!.height * settings.sensitivity;
-      const x = i * barWidth;
-      const y = canvas!.height - barHeight;
-      
-      // Add gradient effect
-      const gradient = ctx.createLinearGradient(0, y, 0, canvas!.height);
-      gradient.addColorStop(0, settings.progressColor);
-      gradient.addColorStop(1, settings.waveColor);
-      ctx.fillStyle = gradient;
-      
-      ctx.fillRect(x, y, barWidth - 2, barHeight);
-    }
+
+    const barData = Array.from({ length: barCount }, (_, i) => {
+      const dataIndex = Math.min(i * stepSize, data.length - 1);
+      return {
+        index: i,
+        value: data[dataIndex],
+        height: (data[dataIndex] / 255) * height * this.currentSettings.sensitivity
+      };
+    });
+
+    group.selectAll('.bar')
+      .data(barData)
+      .enter()
+      .append('rect')
+      .attr('class', 'bar')
+      .attr('x', d => d.index * barWidth)
+      .attr('y', d => height - d.height)
+      .attr('width', barWidth - 2)
+      .attr('height', d => d.height)
+      .attr('fill', (d, i) => {
+        // Create gradient effect
+        const intensity = d.value / 255;
+        return d3.interpolateRgb(this.currentSettings.waveColor, this.currentSettings.progressColor)(intensity);
+      });
   }
 
-  function renderCircular(ctx: CanvasRenderingContext2D, data: Uint8Array, settings: VisualizerSettings) {
-    const centerX = canvas!.width / 2;
-    const centerY = canvas!.height / 2;
+  private renderCircularD3(group: d3.Selection<SVGGElement, unknown, null, undefined>, data: Uint8Array) {
+    if (!this.container) return;
+
+    const rect = this.container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
     const radius = Math.min(centerX, centerY) * 0.3;
-    const barCount = settings.barCount || 64;
+    const barCount = this.currentSettings.barCount || 64;
     const stepSize = Math.floor(data.length / barCount);
-    
-    ctx.strokeStyle = settings.waveColor;
-    ctx.lineWidth = 2;
-    
-    for (let i = 0; i < barCount; i++) {
+
+    const circularData = Array.from({ length: barCount }, (_, i) => {
+      const dataIndex = Math.min(i * stepSize, data.length - 1);
       const angle = (i / barCount) * Math.PI * 2;
-      const barHeight = (data[i * stepSize] / 255) * radius * settings.sensitivity;
+      const barHeight = (data[dataIndex] / 255) * radius * this.currentSettings.sensitivity;
       
-      const x1 = centerX + Math.cos(angle) * radius;
-      const y1 = centerY + Math.sin(angle) * radius;
-      const x2 = centerX + Math.cos(angle) * (radius + barHeight);
-      const y2 = centerY + Math.sin(angle) * (radius + barHeight);
-      
-      // Color based on frequency
-      const hue = (i / barCount) * 360;
-      ctx.strokeStyle = `hsl(${hue}, 70%, 60%)`;
-      
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    }
+      return {
+        angle,
+        barHeight,
+        x1: centerX + Math.cos(angle) * radius,
+        y1: centerY + Math.sin(angle) * radius,
+        x2: centerX + Math.cos(angle) * (radius + barHeight),
+        y2: centerY + Math.sin(angle) * (radius + barHeight),
+        hue: (i / barCount) * 360
+      };
+    });
+
+    group.selectAll('.circular-bar')
+      .data(circularData)
+      .enter()
+      .append('line')
+      .attr('class', 'circular-bar')
+      .attr('x1', d => d.x1)
+      .attr('y1', d => d.y1)
+      .attr('x2', d => d.x2)
+      .attr('y2', d => d.y2)
+      .attr('stroke', d => `hsl(${d.hue}, 70%, 60%)`)
+      .attr('stroke-width', 3);
   }
 
-  function renderSpectrum(ctx: CanvasRenderingContext2D, data: Uint8Array, settings: VisualizerSettings) {
-    const width = canvas!.width;
-    const height = canvas!.height;
-    
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    
-    for (let i = 0; i < data.length; i++) {
-      const x = (i / data.length) * width;
-      const y = height - (data[i] / 255) * height * settings.sensitivity;
-      
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
-      
-      // Add color gradient
-      const hue = (i / data.length) * 360;
-      ctx.strokeStyle = `hsl(${hue}, 70%, 60%)`;
-    }
-    
-    ctx.stroke();
+  private renderSpectrumD3(group: d3.Selection<SVGGElement, unknown, null, undefined>, data: Uint8Array) {
+    if (!this.container) return;
+
+    const rect = this.container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+
+    const lineData = Array.from(data).map((value, i) => ({
+      x: (i / data.length) * width,
+      y: height - (value / 255) * height * this.currentSettings.sensitivity
+    }));
+
+    const line = d3.line<{x: number, y: number}>()
+      .x(d => d.x)
+      .y(d => d.y)
+      .curve(d3.curveCardinal);
+
+    group.append('path')
+      .datum(lineData)
+      .attr('class', 'spectrum-line')
+      .attr('d', line)
+      .attr('fill', 'none')
+      .attr('stroke', this.currentSettings.waveColor)
+      .attr('stroke-width', 2);
   }
 
-  function renderMirror(ctx: CanvasRenderingContext2D, data: Uint8Array, settings: VisualizerSettings) {
-    const barCount = settings.barCount || 32;
-    const barWidth = canvas!.width / (barCount * 2);
+  private renderMirrorD3(group: d3.Selection<SVGGElement, unknown, null, undefined>, data: Uint8Array) {
+    if (!this.container) return;
+
+    const rect = this.container.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const barCount = this.currentSettings.barCount || 32;
+    const barWidth = width / (barCount * 2);
     const stepSize = Math.floor(data.length / barCount);
-    const centerY = canvas!.height / 2;
-    
-    for (let i = 0; i < barCount; i++) {
-      const barHeight = (data[i * stepSize] / 255) * centerY * settings.sensitivity;
-      const x = i * barWidth;
-      
-      // Top half
-      const gradient1 = ctx.createLinearGradient(0, centerY - barHeight, 0, centerY);
-      gradient1.addColorStop(0, settings.progressColor);
-      gradient1.addColorStop(1, settings.waveColor);
-      ctx.fillStyle = gradient1;
-      ctx.fillRect(x, centerY - barHeight, barWidth - 1, barHeight);
-      
-      // Bottom half (mirrored)
-      const gradient2 = ctx.createLinearGradient(0, centerY, 0, centerY + barHeight);
-      gradient2.addColorStop(0, settings.waveColor);
-      gradient2.addColorStop(1, settings.progressColor);
-      ctx.fillStyle = gradient2;
-      ctx.fillRect(x, centerY, barWidth - 1, barHeight);
-      
-      // Mirror on right side
-      const mirrorX = canvas!.width - x - barWidth;
-      ctx.fillStyle = gradient1;
-      ctx.fillRect(mirrorX, centerY - barHeight, barWidth - 1, barHeight);
-      ctx.fillStyle = gradient2;
-      ctx.fillRect(mirrorX, centerY, barWidth - 1, barHeight);
-    }
+    const centerY = height / 2;
+
+    const mirrorData = Array.from({ length: barCount }, (_, i) => {
+      const dataIndex = Math.min(i * stepSize, data.length - 1);
+      const barHeight = (data[dataIndex] / 255) * centerY * this.currentSettings.sensitivity;
+      return {
+        index: i,
+        barHeight,
+        x: i * barWidth,
+        mirrorX: width - i * barWidth - barWidth
+      };
+    });
+
+    // Draw main bars
+    mirrorData.forEach(d => {
+      // Top bars
+      group.append('rect')
+        .attr('x', d.x)
+        .attr('y', centerY - d.barHeight)
+        .attr('width', barWidth - 1)
+        .attr('height', d.barHeight)
+        .attr('fill', this.currentSettings.progressColor);
+
+      // Bottom bars
+      group.append('rect')
+        .attr('x', d.x)
+        .attr('y', centerY)
+        .attr('width', barWidth - 1)
+        .attr('height', d.barHeight)
+        .attr('fill', this.currentSettings.waveColor);
+
+      // Mirror bars
+      group.append('rect')
+        .attr('x', d.mirrorX)
+        .attr('y', centerY - d.barHeight)
+        .attr('width', barWidth - 1)
+        .attr('height', d.barHeight)
+        .attr('fill', this.currentSettings.progressColor);
+
+      group.append('rect')
+        .attr('x', d.mirrorX)
+        .attr('y', centerY)
+        .attr('width', barWidth - 1)
+        .attr('height', d.barHeight)
+        .attr('fill', this.currentSettings.waveColor);
+    });
   }
 
-  function renderParticles(ctx: CanvasRenderingContext2D, data: Uint8Array, settings: VisualizerSettings) {
-    const particleCount = settings.particleCount || 100;
-    const centerX = canvas!.width / 2;
-    const centerY = canvas!.height / 2;
-    
-    for (let i = 0; i < particleCount && i < data.length; i++) {
+  private renderParticlesD3(group: d3.Selection<SVGGElement, unknown, null, undefined>, data: Uint8Array) {
+    if (!this.container) return;
+
+    const rect = this.container.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const maxRadius = Math.min(centerX, centerY) * 0.8;
+    const particleCount = Math.min(this.currentSettings.particleCount || 100, data.length);
+
+    const particleData = Array.from({ length: particleCount }, (_, i) => {
       const angle = (i / particleCount) * Math.PI * 2;
-      const intensity = data[i] / 255 * settings.sensitivity;
-      const radius = intensity * Math.min(centerX, centerY) * 0.8;
+      const intensity = data[i] / 255 * this.currentSettings.sensitivity;
+      const radius = intensity * maxRadius;
       
-      const x = centerX + Math.cos(angle) * radius;
-      const y = centerY + Math.sin(angle) * radius;
-      const size = intensity * 10 + 2;
-      
-      // Color based on intensity and position
-      const hue = (intensity * 360 + i * 3) % 360;
-      ctx.fillStyle = `hsla(${hue}, 70%, 60%, ${intensity})`;
-      
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
+      return {
+        x: centerX + Math.cos(angle) * radius,
+        y: centerY + Math.sin(angle) * radius,
+        size: Math.max(1, intensity * 8 + 2),
+        hue: (intensity * 360 + i * 3) % 360,
+        alpha: Math.max(0.3, intensity)
+      };
+    });
+
+    group.selectAll('.particle')
+      .data(particleData)
+      .enter()
+      .append('circle')
+      .attr('class', 'particle')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', d => d.size)
+      .attr('fill', d => `hsla(${d.hue}, 70%, 60%, ${d.alpha})`);
+  }
+
+  private stopAnimation() {
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
     }
   }
 
-  function setupWaveSurferEvents() {
-    if (!wavesurfer) return;
-
-    wavesurfer.on('ready', () => {
-      console.log('WaveSurfer is ready');
-    });
-
-    wavesurfer.on('play', () => {
-      console.log('WaveSurfer playing');
-      if (store.getState().isPlaying !== true) {
-        store.getState().setIsPlaying(true);
-      }
-    });
-
-    wavesurfer.on('pause', () => {
-      console.log('WaveSurfer paused');
-      if (store.getState().isPlaying !== false) {
-        store.getState().setIsPlaying(false);
-      }
-    });
-
-    wavesurfer.on('interaction', () => {
-      wavesurfer?.play();
-    });
-
-    wavesurfer.on('error', (error) => {
-      console.error('Wavesurfer error:', error);
-    });
-  }
-
-  function resizeCanvas() {
-    if (!canvas || !container) return;
+  private updateTimeDisplay() {
+    const progressEl = document.getElementById('progress') as HTMLInputElement;
+    const timeDisplay = document.getElementById('timeDisplay');
     
-    const rect = container.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
+    if (progressEl && this.duration > 0) {
+      progressEl.value = ((this.currentTime / this.duration) * 100).toString();
+    }
+    
+    if (timeDisplay && this.duration > 0) {
+      const formatTime = (seconds: number) => {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs.toString().padStart(2, '0')}`;
+      };
+      
+      timeDisplay.textContent = `${formatTime(this.currentTime)} / ${formatTime(this.duration)}`;
+    }
   }
 
-  function cleanup() {
-    // Cleanup WaveSurfer
-    if (wavesurfer) {
-      try {
-        wavesurfer.pause();
-        wavesurfer.destroy();
-      } catch (error) {
-        console.warn('Error cleaning up wavesurfer:', error);
+  private subscribeToStore() {
+    this.store.subscribe((state) => {
+      if (this.isDestroyed) return;
+
+      const currentType = (state as any).visualizerType || 'waveform';
+      
+      if (state.currentTrack !== this.lastTrackUrl || currentType !== this.lastVisualizerType) {
+        this.lastTrackUrl = state.currentTrack;
+        this.lastVisualizerType = currentType;
+        
+        if (state.currentTrack) {
+          const settings: VisualizerSettings = { ...this.currentSettings, type: currentType };
+          this.createVisualization(state.currentTrack, settings);
+        } else {
+          this.cleanup(false);
+        }
       }
-      wavesurfer = null;
+
+      this.handlePlaybackStateChange(state.isPlaying);
+    });
+  }
+
+  private handlePlaybackStateChange(shouldPlay: boolean) {
+    try {
+      const audioElement = (this.container as any)?.audioElement;
+      if (audioElement) {
+        if (shouldPlay && audioElement.paused) {
+          audioElement.play().catch((error: any) => {
+            console.error('Error playing audio:', error);
+            this.store.getState().setIsPlaying(false);
+          });
+        } else if (!shouldPlay) {
+          audioElement.pause();
+        }
+      }
+    } catch (error) {
+      console.error('Error controlling playback:', error);
+    }
+  }
+
+  private setupCleanupHandlers() {
+    window.addEventListener('beforeunload', () => {
+      this.cleanup(true);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.stopAnimation();
+      } else if (this.store.getState().isPlaying && this.currentSettings.type !== 'waveform') {
+        this.startAnimation();
+      }
+    });
+  }
+
+  private async cleanup(isDestroying = false) {
+    if (isDestroying) {
+      this.isDestroyed = true;
     }
 
-    // Cleanup Web Audio API
-    stopAnimation();
-    if (audioContext) {
+    this.stopAnimation();
+
+    if (this.audioContext) {
       try {
-        audioContext.close();
+        await this.audioContext.close();
       } catch (error) {
         console.warn('Error closing audio context:', error);
       }
-      audioContext = null;
+      this.audioContext = null;
     }
-    analyser = null;
-    dataArray = null;
+    
+    this.analyser = null;
+    this.dataArray = null;
 
-    // Cleanup audio element
-    const audioElement = (container as any)?.audioElement;
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.src = '';
-      (container as any).audioElement = null;
+    if (this.container) {
+      const audioElement = (this.container as any)?.audioElement;
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+        audioElement.load();
+        (this.container as any).audioElement = null;
+      }
+    }
+
+    if (isDestroying && this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
     }
   }
 
-  // Keep track of the last track URL and settings
-  let lastTrackUrl: string | null = null;
-  let lastVisualizerType: VisualizerType = 'waveform';
-
-  // Subscribe to store changes
-  store.subscribe((state) => {
-    const currentType = (state as any).visualizerType || 'waveform';
+  // Public API methods
+  public setVisualizerType(type: VisualizerType) {
+    if (this.isDestroyed) return;
     
-    // Handle track changes or visualizer type changes
-    if (state.currentTrack !== lastTrackUrl || currentType !== lastVisualizerType) {
-      lastTrackUrl = state.currentTrack;
-      lastVisualizerType = currentType;
-      
-      if (state.currentTrack) {
-        const settings = { ...defaultSettings, type: currentType };
-        createWaveform(state.currentTrack, settings);
-      } else {
-        cleanup();
-      }
+    if (this.lastTrackUrl) {
+      const settings: VisualizerSettings = { ...this.currentSettings, type };
+      this.createVisualization(this.lastTrackUrl, settings);
     }
+  }
 
-    // Handle play/pause state changes
-    if (wavesurfer) {
-      try {
-        const isCurrentlyPlaying = wavesurfer.isPlaying();
-        if (state.isPlaying && !isCurrentlyPlaying) {
-          wavesurfer.play().catch(error => {
-            console.error('Error playing audio:', error);
-            store.getState().setIsPlaying(false);
-          });
-        } else if (!state.isPlaying && isCurrentlyPlaying) {
-          wavesurfer.pause();
-        }
-      } catch (error) {
-        console.error('Error controlling playback:', error);
-      }
-    }
-
-    // Handle custom visualizer playback
-    const audioElement = (container as any)?.audioElement;
-    if (audioElement) {
-      try {
-        if (state.isPlaying && audioElement.paused) {
-          audioElement.play().catch((error: any) => {
-            console.error('Error playing audio:', error);
-            store.getState().setIsPlaying(false);
-          });
-        } else if (!state.isPlaying && !audioElement.paused) {
-          audioElement.pause();
-        }
-      } catch (error) {
-        console.error('Error controlling custom visualizer playback:', error);
-      }
-    }
-  });
-
-  // Handle window resize
-  window.addEventListener('resize', () => {
-    if (wavesurfer && container) {
-      const containerHeight = container.clientHeight;
-      wavesurfer.setOptions({
-        height: Math.min(containerHeight, 128)
-      });
-    }
+  public updateSettings(newSettings: Partial<VisualizerSettings>) {
+    if (this.isDestroyed) return;
     
-    if (canvas && container) {
-      resizeCanvas();
+    if (this.lastTrackUrl) {
+      const settings: VisualizerSettings = { ...this.currentSettings, ...newSettings } as VisualizerSettings;
+      this.createVisualization(this.lastTrackUrl, settings);
     }
-  });
+  }
 
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', cleanup);
+  public destroy() {
+    this.cleanup(true);
+  }
+}
 
-  return {
-    setVisualizerType: (type: VisualizerType) => {
-      if (lastTrackUrl) {
-        const settings = { ...defaultSettings, type };
-        createWaveform(lastTrackUrl, settings);
-      }
-    },
-    updateSettings: (newSettings: Partial<VisualizerSettings>) => {
-      if (lastTrackUrl) {
-        const settings = { ...defaultSettings, ...newSettings };
-        createWaveform(lastTrackUrl, settings);
-      }
-    },
-    cleanup
-  };
+// Export factory function to maintain API compatibility
+export function initVisualizer(store: UseBoundStore<StoreApi<AppState>>) {
+  return new VisualizerManager(store);
 }

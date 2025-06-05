@@ -78,7 +78,12 @@ function setupAddMusicButton() {
         fileInput.click();
       }
     } else {
-      // Fallback: file input
+      console.warn('Directory picker not supported, falling back to file input');
+      // Fallback for browsers that don't support directory picker
+      // Ensure file input accepts multiple files and audio types
+      fileInput.setAttribute('multiple', 'true');
+      fileInput.setAttribute('accept', 'audio/*');
+      // Trigger file input click
       fileInput.click();
     }
   });

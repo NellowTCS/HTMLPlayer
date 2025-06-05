@@ -1,43 +1,35 @@
-interface VisualizerType {
-  id: string;
+import { VisualizerType as VisType, VisualizerSettings } from './visualizer';
+
+interface VisualizerTypeInfo {
+  id: VisType;
   name: string;
   icon: string;
   description: string;
 }
 
-interface VisualizerSettings {
-  sensitivity: number;
-  smoothing: number;
-  barCount: number;
-  particleCount: number;
-  waveColor: string;
-  progressColor: string;
-  backgroundColor: string;
-}
-
 interface VisualizerControlsOptions {
   container: HTMLElement;
-  currentType?: string;
-  onTypeChange?: (type: string) => void;
+  currentType?: VisType;
+  onTypeChange?: (type: VisType) => void;
   onSettingsChange?: <K extends keyof VisualizerSettings>(setting: K, value: VisualizerSettings[K]) => void;
 }
 
 class VisualizerControls {
   private container: HTMLElement;
-  private currentType: string;
-  private onTypeChange?: (type: string) => void;
+  private currentType: VisType;
+  private onTypeChange?: (type: VisType) => void;
   private onSettingsChange?: <K extends keyof VisualizerSettings>(setting: K, value: VisualizerSettings[K]) => void;
   private showSettings: boolean = false;
   private settings: VisualizerSettings;
 
-  private readonly visualizerTypes: VisualizerType[] = [
+  private readonly visualizerTypes: VisualizerTypeInfo[] = [
     { id: 'waveform', name: 'Waveform', icon: '〰️', description: 'Classic waveform display' },
     { id: 'bars', name: 'Frequency Bars', icon: '📊', description: 'Vertical frequency bars' },
     { id: 'circular', name: 'Circular', icon: '⭕', description: 'Radial frequency display' },
     { id: 'spectrum', name: 'Spectrum', icon: '📈', description: 'Smooth frequency curve' },
     { id: 'mirror', name: 'Mirror', icon: '🪞', description: 'Symmetrical mirrored bars' },
     { id: 'particles', name: 'Particles', icon: '✨', description: 'Dynamic particle system' }
-  ];
+  ] as const;
 
   constructor(options: VisualizerControlsOptions) {
     this.container = options.container;
@@ -46,6 +38,8 @@ class VisualizerControls {
     this.onSettingsChange = options.onSettingsChange;
     
     this.settings = {
+      type: this.currentType as VisType,
+      height: 200,
       sensitivity: 1.0,
       smoothing: 0.8,
       barCount: 64,
@@ -145,7 +139,7 @@ class VisualizerControls {
         <div class="bg-gray-800 border border-gray-600 rounded-lg p-3">
           <h5 class="text-gray-300 font-medium mb-2">Visualizer Types:</h5>
           <div class="text-xs text-gray-400 space-y-1">
-            <p><strong>Waveform:</strong> Traditional audio waveform with WaveSurfer.js</p>
+            <p><strong>Waveform:</strong> Traditional audio waveform visualization</p>
             <p><strong>Frequency Bars:</strong> Classic vertical frequency spectrum</p>
             <p><strong>Circular:</strong> Radial frequency display around a center point</p>
             <p><strong>Spectrum:</strong> Smooth frequency curve visualization</p>
@@ -187,7 +181,7 @@ class VisualizerControls {
     typeButtons.forEach(button => {
       button.addEventListener('click', () => {
         const type = button.dataset.type;
-        if (type) this.handleTypeChange(type);
+        if (type) this.handleTypeChange(type as VisType);
       });
     });
 
@@ -238,6 +232,7 @@ class VisualizerControls {
     slider?.addEventListener('input', (e) => {
       const target = e.target as HTMLInputElement;
       const value = parser(target.value);
+      if (!value) return; // Ignore invalid values
       this.handleSettingChange(settingKey, value);
       if (valueSpan) valueSpan.textContent = value.toString();
     });
@@ -259,7 +254,7 @@ class VisualizerControls {
     }
   }
 
-  private handleTypeChange(type: string): void {
+  private handleTypeChange(type: VisType): void {
     this.currentType = type;
     this.onTypeChange?.(type);
     this.updateVisualizerTypeButtons();
@@ -324,7 +319,7 @@ class VisualizerControls {
   }
 
   // Public methods
-  public getCurrentType(): string {
+  public getCurrentType(): VisType {
     return this.currentType;
   }
 
@@ -338,7 +333,7 @@ class VisualizerControls {
     this.attachEventListeners();
   }
 
-  public setCurrentType(type: string): void {
+  public setCurrentType(type: VisType): void {
     if (this.visualizerTypes.some(t => t.id === type)) {
       this.handleTypeChange(type);
     }
