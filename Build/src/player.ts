@@ -17,218 +17,328 @@ interface Track {
   title: string;
 }
 
-export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
-  let howl: Howl | null = null;
-  let currentTrackUrl: string | null = null;
-  let intervalId: NodeJS.Timeout | null = null;
-  const progressEl = document.getElementById('progress') as HTMLInputElement;
-  const currentTimeEl = document.getElementById('currentTime') as HTMLElement;
-  const durationEl = document.getElementById('duration') as HTMLElement;
+// Player state management
+class PlayerState {
+  private _isShuffleMode = false;
+  private _isRepeatMode = false;
 
-  const updateProgress = debounce(() => {
-    if (howl && howl.playing()) {
-      const pos = howl.seek();
-      const dur = howl.duration();
-      progressEl.value = ((pos / dur) * 100).toString();
-      currentTimeEl.textContent = formatTime(pos);
-      durationEl.textContent = formatTime(dur);
-      savePlaybackPosition(store.getState().currentTrack, pos);
+  get isShuffleMode() { return this._isShuffleMode; }
+  get isRepeatMode() { return this._isRepeatMode; }
+
+  toggleShuffle() {
+    this._isShuffleMode = !this._isShuffleMode;
+    this.updateButtonState('shuffleBtn', this._isShuffleMode);
+    return this._isShuffleMode;
+  }
+
+  toggleRepeat() {
+    this._isRepeatMode = !this._isRepeatMode;
+    this.updateButtonState('repeatBtn', this._isRepeatMode);
+    return this._isRepeatMode;
+  }
+
+  private updateButtonState(buttonId: string, isActive: boolean) {
+    const btn = document.getElementById(buttonId);
+    btn?.classList.toggle('active', isActive);
+  }
+}
+
+// UI management
+class PlayerUI {
+  private progressEl = document.getElementById('progress') as HTMLInputElement;
+  private currentTimeEl = document.getElementById('currentTime') as HTMLElement;
+  private durationEl = document.getElementById('duration') as HTMLElement;
+  private playIcon = document.getElementById('playIcon') as HTMLElement;
+  private pauseIcon = document.getElementById('pauseIcon') as HTMLElement;
+
+  updateProgress(position: number, duration: number) {
+    if (this.progressEl) {
+      this.progressEl.value = ((position / duration) * 100).toString();
     }
-  }, 100);
-
-  document.getElementById('playPauseBtn')?.addEventListener('click', () => {
-    const currentTrack = store.getState().currentTrack;
-    if (!currentTrack) {
-      console.warn('No track selected');
-      return;
+    if (this.currentTimeEl) {
+      this.currentTimeEl.textContent = this.formatTime(position);
     }
-
-    if (!howl) {
-      // If we don't have a howl instance but we have a track, create one
-      store.getState().setCurrentTrack(currentTrack); // This will trigger the store subscription
-    } else {
-      if (howl.playing()) {
-        howl.pause();
-      } else {
-        // Prevent double playback: only call play if not already playing
-        if (!howl.playing()) {
-          howl.play();
-        }
-      }
+    if (this.durationEl) {
+      this.durationEl.textContent = this.formatTime(duration);
     }
-  });
+  }
 
-  let isShuffleMode = false;
-  let isRepeatMode = false;
+  updatePlayState(isPlaying: boolean) {
+    if (this.playIcon && this.pauseIcon) {
+      this.playIcon.style.display = isPlaying ? 'none' : '';
+      this.pauseIcon.style.display = isPlaying ? '' : 'none';
+    }
+  }
 
-  // Get the next track based on current state
-  const getNextTrack = async () => {
+  getProgressValue(): number {
+    return this.progressEl ? parseFloat(this.progressEl.value) : 0;
+  }
+
+  private formatTime(seconds: number): string {
+    const min = Math.floor(seconds / 60);
+    const sec = Math.floor(seconds % 60);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  }
+}
+
+// Track navigation logic
+class TrackNavigator {
+  constructor(private playerState: PlayerState) {}
+
+  async getNextTrack(currentTrackUrl: string | null): Promise<string | null> {
     const tracks = await loadTracks();
     if (tracks.length === 0) return null;
     
-    const currentTrackUrl = store.getState().currentTrack;
     const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
     
-    if (isShuffleMode) {
-      const nextIndex = Math.floor(Math.random() * tracks.length);
-      return tracks[nextIndex].url;
+    if (this.playerState.isShuffleMode) {
+      return this.getRandomTrack(tracks, currentTrackUrl);
     }
     
     const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % tracks.length;
     return tracks[nextIndex].url;
-  };
+  }
 
-  // Get the previous track based on current state
-  const getPrevTrack = async () => {
+  async getPreviousTrack(currentTrackUrl: string | null): Promise<string | null> {
     const tracks = await loadTracks();
     if (tracks.length === 0) return null;
     
-    const currentTrackUrl = store.getState().currentTrack;
     const currentIndex = tracks.findIndex(t => t.url === currentTrackUrl);
     
-    if (isShuffleMode) {
-      const prevIndex = Math.floor(Math.random() * tracks.length);
-      return tracks[prevIndex].url;
+    if (this.playerState.isShuffleMode) {
+      return this.getRandomTrack(tracks, currentTrackUrl);
     }
     
     const prevIndex = currentIndex === -1 ? tracks.length - 1 : 
       (currentIndex - 1 + tracks.length) % tracks.length;
     return tracks[prevIndex].url;
-  };
+  }
 
-  document.getElementById('nextBtn')?.addEventListener('click', async () => {
-    const nextTrackUrl = await getNextTrack();
-    if (nextTrackUrl) {
-      store.getState().setCurrentTrack(nextTrackUrl);
-    }
-  });
-
-  document.getElementById('prevBtn')?.addEventListener('click', async () => {
-    const prevTrackUrl = await getPrevTrack();
-    if (prevTrackUrl) {
-      store.getState().setCurrentTrack(prevTrackUrl);
-    }
-  });
-
-  document.getElementById('shuffleBtn')?.addEventListener('click', () => {
-    isShuffleMode = !isShuffleMode;
-    const btn = document.getElementById('shuffleBtn');
-    btn?.classList.toggle('active', isShuffleMode);
-  });
-
-  document.getElementById('repeatBtn')?.addEventListener('click', () => {
-    isRepeatMode = !isRepeatMode;
-    const btn = document.getElementById('repeatBtn');
-    btn?.classList.toggle('active', isRepeatMode);
-  });
-
-  progressEl?.addEventListener('input', debounce(() => {
-    if (howl) {
-      const seek = (parseFloat(progressEl.value) / 100) * howl.duration();
-      howl.seek(seek);
-    }
-  }, 100));
-
-  store.subscribe(async (state) => {
-    if (state.currentTrack !== currentTrackUrl) {
-      // Cleanup old track
-      if (currentTrackUrl) {
-        revokeAudioBlobUrl(currentTrackUrl);
-      }
-      if (howl) {
-        howl.stop();
-        howl.unload();
-        howl = null; // Ensure reference is cleared
-      }
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-
-      // Create new Howl instance after cleanup
-      currentTrackUrl = state.currentTrack;
-      try {
-        const trackUrl = state.currentTrack;
-        if (!trackUrl) {
-          throw new Error('No track URL provided');
-        }
-
-        // Get the blob URL from our central management
-        const blobUrl = await getAudioBlobUrl(trackUrl);
-
-        // Use Howler's Howl constructor
-        howl = new Howl({
-          src: [blobUrl],
-          html5: true,
-          format: ['mp3', 'wav', 'ogg', 'm4a'],
-          preload: true,
-          onload: () => {
-            console.log('Track loaded successfully');
-          },
-          onloaderror: (id: any, error: any) => {
-            console.error('Error loading track:', error);
-          },
-          onplay: () => {
-            store.getState().setIsPlaying(true);
-            const playIcon = document.getElementById('playIcon');
-            const pauseIcon = document.getElementById('pauseIcon');
-            if (playIcon && pauseIcon) {
-              playIcon.style.display = 'none';
-              pauseIcon.style.display = '';
-            }
-          },
-          onpause: () => {
-            store.getState().setIsPlaying(false);
-            const playIcon = document.getElementById('playIcon');
-            const pauseIcon = document.getElementById('pauseIcon');
-            if (playIcon && pauseIcon) {
-              playIcon.style.display = '';
-              pauseIcon.style.display = 'none';
-            }
-          },
-          onend: async () => {
-            if (isRepeatMode) {
-              howl?.play();
-            } else {
-              const nextTrackUrl = await getNextTrack();
-              if (nextTrackUrl) {
-                store.getState().setCurrentTrack(nextTrackUrl);
-              } else {
-                store.getState().setCurrentTrack(null);
-              }
-            }
-          },
-          onstop: () => {
-            store.getState().setIsPlaying(false);
-          }
-        });
-
-        const pos = await loadPlaybackPosition(state.currentTrack);
-        if (!howl) {
-          console.error('Howl instance is null');
-          return;
-        }
-        if (pos !== null) {
-          howl.seek(pos);
-        }
-        const playIcon = document.getElementById('playIcon');
-        const pauseIcon = document.getElementById('pauseIcon');
-        if (playIcon && pauseIcon) {
-          playIcon.style.display = 'none';
-          pauseIcon.style.display = '';
-        }
-        howl.play();
-        intervalId = setInterval(updateProgress, 100);
-      } catch (error) {
-        console.error('Error creating Howl instance:', error);
-        currentTrackUrl = null;
-        howl = null;
-      }
-    }
-  });
+  private getRandomTrack(tracks: Track[], excludeUrl: string | null): string {
+    if (tracks.length <= 1) return tracks[0]?.url || '';
+    
+    let randomTrack;
+    do {
+      const randomIndex = Math.floor(Math.random() * tracks.length);
+      randomTrack = tracks[randomIndex];
+    } while (randomTrack.url === excludeUrl && tracks.length > 1);
+    
+    return randomTrack.url;
+  }
 }
 
-function formatTime(seconds: number): string {
-  const min = Math.floor(seconds / 60);
-  const sec = Math.floor(seconds % 60);
-  return `${min}:${sec.toString().padStart(2, '0')}`;
+// Main audio player class
+class AudioPlayer {
+  private howl: Howl | null = null;
+  private currentTrackUrl: string | null = null;
+  private intervalId: NodeJS.Timeout | null = null;
+  private ui = new PlayerUI();
+  private playerState = new PlayerState();
+  private navigator = new TrackNavigator(this.playerState);
+  private isTransitioning = false;
+
+  constructor(private store: UseBoundStore<StoreApi<AppState>>) {
+    this.initializeEventListeners();
+    this.subscribeToStore();
+  }
+
+  private initializeEventListeners() {
+    // Play/Pause button
+    document.getElementById('playPauseBtn')?.addEventListener('click', () => {
+      this.handlePlayPause();
+    });
+
+    // Navigation buttons
+    document.getElementById('nextBtn')?.addEventListener('click', async () => {
+      await this.handleNext();
+    });
+
+    document.getElementById('prevBtn')?.addEventListener('click', async () => {
+      await this.handlePrevious();
+    });
+
+    // Mode buttons
+    document.getElementById('shuffleBtn')?.addEventListener('click', () => {
+      this.playerState.toggleShuffle();
+    });
+
+    document.getElementById('repeatBtn')?.addEventListener('click', () => {
+      this.playerState.toggleRepeat();
+    });
+
+    // Progress bar
+    const progressEl = document.getElementById('progress') as HTMLInputElement;
+    progressEl?.addEventListener('input', debounce(() => {
+      this.handleProgressChange();
+    }, 100));
+  }
+
+  private handlePlayPause() {
+    const currentTrack = this.store.getState().currentTrack;
+    if (!currentTrack) {
+      console.warn('No track selected');
+      return;
+    }
+
+    if (!this.howl) {
+      this.store.getState().setCurrentTrack(currentTrack);
+      return;
+    }
+
+    if (!this.isTransitioning) {
+      if (this.howl.playing()) {
+        this.howl.pause();
+      } else {
+        this.howl.play();
+      }
+    }
+  }
+
+  private async handleNext() {
+    if (this.isTransitioning) return;
+    
+    const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
+    if (nextTrackUrl) {
+      this.store.getState().setCurrentTrack(nextTrackUrl);
+    }
+  }
+
+  private async handlePrevious() {
+    if (this.isTransitioning) return;
+    
+    const prevTrackUrl = await this.navigator.getPreviousTrack(this.currentTrackUrl);
+    if (prevTrackUrl) {
+      this.store.getState().setCurrentTrack(prevTrackUrl);
+    }
+  }
+
+  private handleProgressChange() {
+    if (this.howl && !this.isTransitioning) {
+      const seek = (this.ui.getProgressValue() / 100) * this.howl.duration();
+      this.howl.seek(seek);
+    }
+  }
+
+  private updateProgress = debounce(() => {
+    if (this.howl && this.howl.playing() && !this.isTransitioning) {
+      const pos = this.howl.seek();
+      const dur = this.howl.duration();
+      
+      if (typeof pos === 'number' && typeof dur === 'number' && dur > 0) {
+        this.ui.updateProgress(pos, dur);
+        savePlaybackPosition(this.currentTrackUrl, pos);
+      }
+    }
+  }, 100);
+
+  private async cleanupCurrentTrack() {
+    this.isTransitioning = true;
+    
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+
+    if (this.howl) {
+      this.howl.stop();
+      this.howl.unload();
+      this.howl = null;
+    }
+
+    if (this.currentTrackUrl) {
+      revokeAudioBlobUrl(this.currentTrackUrl);
+    }
+  }
+
+  private async loadNewTrack(trackUrl: string) {
+    try {
+      const blobUrl = await getAudioBlobUrl(trackUrl);
+      const savedPosition = await loadPlaybackPosition(trackUrl);
+
+      this.howl = new Howl({
+        src: [blobUrl],
+        html5: true,
+        format: ['mp3', 'wav', 'ogg', 'm4a'],
+        preload: true,
+        onload: () => {
+          console.log('Track loaded successfully');
+          this.isTransitioning = false;
+          
+          // Restore playback position
+          if (savedPosition !== null && this.howl) {
+            this.howl.seek(savedPosition);
+          }
+          
+          // Start playback
+          this.howl?.play();
+          this.intervalId = setInterval(this.updateProgress, 100);
+        },
+        onloaderror: (id: any, error: any) => {
+          console.error('Error loading track:', error);
+          this.isTransitioning = false;
+        },
+        onplay: () => {
+          this.store.getState().setIsPlaying(true);
+          this.ui.updatePlayState(true);
+        },
+        onpause: () => {
+          this.store.getState().setIsPlaying(false);
+          this.ui.updatePlayState(false);
+        },
+        onend: async () => {
+          await this.handleTrackEnd();
+        },
+        onstop: () => {
+          this.store.getState().setIsPlaying(false);
+          this.ui.updatePlayState(false);
+        }
+      });
+
+      this.currentTrackUrl = trackUrl;
+    } catch (error) {
+      console.error('Error creating Howl instance:', error);
+      this.currentTrackUrl = null;
+      this.howl = null;
+      this.isTransitioning = false;
+    }
+  }
+
+  private async handleTrackEnd() {
+    if (this.playerState.isRepeatMode) {
+      this.howl?.play();
+    } else {
+      const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
+      if (nextTrackUrl) {
+        this.store.getState().setCurrentTrack(nextTrackUrl);
+      } else {
+        this.store.getState().setCurrentTrack(null);
+        this.store.getState().setIsPlaying(false);
+      }
+    }
+  }
+
+  private subscribeToStore() {
+    this.store.subscribe(async (state) => {
+      if (state.currentTrack !== this.currentTrackUrl) {
+        await this.cleanupCurrentTrack();
+        
+        if (state.currentTrack) {
+          await this.loadNewTrack(state.currentTrack);
+        } else {
+          this.currentTrackUrl = null;
+          this.isTransitioning = false;
+        }
+      }
+    });
+  }
+
+  // Public method to cleanup when component unmounts
+  destroy() {
+    this.cleanupCurrentTrack();
+  }
+}
+
+// Factory function to maintain the same API
+export function initPlayer(store: UseBoundStore<StoreApi<AppState>>) {
+  return new AudioPlayer(store);
 }
