@@ -2,6 +2,7 @@ import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { debounce } from 'lodash';
 import VisualizerControls from './visualizerControls';
+import { VisualizerType } from './visualizer';
 
 export function initUI(store: UseBoundStore<StoreApi<AppState>>) {
   // Cache DOM elements
@@ -16,15 +17,29 @@ export function initUI(store: UseBoundStore<StoreApi<AppState>>) {
     document.documentElement.setAttribute('data-theme', state.theme);
   });
 
-  const container = document.getElementById('visualizer-controls');
+  // Initialize visualizer controls
+  const container = document.getElementById('visualizer-controls')!;
+  const visualizerModal = document.getElementById('visualizer-controls-modal')!;
+  const openVisualizerBtn = document.getElementById('openVisualizerControls');
+  const visualizerInstance = store.getState().visualizer;
+
+  // Create controls instance with callbacks to update visualizer
   const controls = new VisualizerControls({
-    container: container!,
+    container,
     currentType: 'waveform',
     onTypeChange: (type) => {
-      console.log('Visualizer type changed to:', type);
+      const validType = ['waveform', 'bars', 'circular', 'spectrum', 'mirror', 'particles'].includes(type) 
+        ? type as VisualizerType 
+        : 'waveform';
+      visualizerInstance?.setVisualizerType(validType);
     },
     onSettingsChange: (setting, value) => {
-      console.log('Setting changed:', setting, '=', value);
+      visualizerInstance?.updateSettings({ [setting]: value });
     }
+  });
+
+  // Handle modal opening
+  openVisualizerBtn?.addEventListener('click', () => {
+    visualizerModal.classList.remove('hidden');
   });
 }

@@ -1,34 +1,50 @@
 import { create } from 'zustand';
 import { initPlayer } from './player';
 import { initSettings } from './settings';
-import { initVisualizer } from './visualizer';
+import { initVisualizer, VisualizerSettings, VisualizerType } from './visualizer';
 import { initPlaylists } from './playlists';
 import { initTracks } from './tracks';
 import { initUI } from './ui';
+
+interface VisualizerInstance {
+  setVisualizerType: (type: VisualizerType) => void;
+  updateSettings: (settings: Partial<VisualizerSettings>) => void;
+}
 
 export interface AppState {
   currentTrack: string | null;
   isPlaying: boolean;
   theme: string;
+  visualizer: VisualizerInstance | null;
   setCurrentTrack: (track: string | null) => void;
   setIsPlaying: (playing: boolean) => void;
   setTheme: (theme: string) => void;
+  setVisualizer: (visualizer: VisualizerInstance) => void;
 }
 
 const useStore = create<AppState>((set) => ({
   currentTrack: null,
   isPlaying: false,
   theme: 'default',
+  visualizer: null,
   setCurrentTrack: (track) => set({ currentTrack: track }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setTheme: (theme) => set({ theme }),
+  setVisualizer: (visualizer) => set({ visualizer }),
 }));
 
 async function initApp() {
+  const visualizerInstance = initVisualizer(useStore);
+  if (visualizerInstance) {
+    useStore.getState().setVisualizer({
+      setVisualizerType: visualizerInstance.setVisualizerType,
+      updateSettings: visualizerInstance.updateSettings
+    });
+  }
+  
   initUI(useStore);
   initPlayer(useStore);
   initSettings(useStore);
-  initVisualizer(useStore);
   initPlaylists(useStore);
   initTracks(useStore);
   setupAddMusicButton();

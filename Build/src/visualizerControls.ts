@@ -65,12 +65,17 @@ class VisualizerControls {
 
   private render(): void {
     this.container.innerHTML = `
-      <div class="visualizer-controls bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4">
+      <div class="visualizer-controls bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4" style="position: relative;">
         <div class="flex items-center justify-between">
           <h3 class="text-white font-semibold">Audio Visualizer</h3>
-          <button id="settings-toggle" class="p-2 hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-white">
-            ⚙️
-          </button>
+          <div class="flex items-center gap-1">
+            <button id="settings-toggle" class="p-2 hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-white">
+              ⚙️
+            </button>
+            <button id="closeVisualizerControls" class="p-2 hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-white">
+              ✕
+            </button>
+          </div>
         </div>
 
         <!-- Visualizer Type Selection -->
@@ -204,6 +209,21 @@ class VisualizerControls {
         const theme = button.dataset.theme;
         if (theme) this.applyTheme(theme);
       });
+    });
+
+    // Attach close button logic
+    const closeBtn = this.container.querySelector('#closeVisualizerControls') as HTMLButtonElement;
+    const modal = document.getElementById('visualizer-controls-modal');
+    
+    closeBtn?.addEventListener('click', () => {
+      modal?.classList.add('hidden');
+    });
+
+    // Handle click outside modal to close
+    modal?.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+      }
     });
   }
 
