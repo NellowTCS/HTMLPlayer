@@ -169,11 +169,32 @@ class AudioPlayer {
   private playerState = new PlayerState();
   private navigator = new TrackNavigator(this.playerState);
   private isTransitioning = false;
+  private isLoading = false; // Add loading state to prevent multiple loads
   private unsubscribe: (() => void) | null = null;
+  private lastStoreState: any = null; // Track last state to prevent unnecessary updates
+  private visualizerInstance: any = null; // Store reference to visualizer
 
   constructor(private store: UseBoundStore<StoreApi<AppState>>) {
     this.initializeEventListeners();
     this.subscribeToStore();
+  }
+
+  // Method to set visualizer instance
+  public setVisualizerInstance(visualizer: any) {
+    this.visualizerInstance = visualizer;
+    console.log('Visualizer instance set in audio player');
+    
+    // If we already have a howl instance, connect it to the visualizer
+    if (this.howl) {
+      this.connectVisualizerToHowl();
+    }
+  }
+
+  private connectVisualizerToHowl() {
+    if (this.visualizerInstance && this.howl) {
+      console.log('Connecting visualizer to Howl instance');
+      this.visualizerInstance.setHowlInstance(this.howl);
+    }
   }
 
   private initializeEventListeners() {
@@ -219,7 +240,7 @@ class AudioPlayer {
       return;
     }
 
-    if (!this.isTransitioning) {
+    if (!this.isTransitioning && !this.isLoading) {
       try {
         if (this.howl.playing()) {
           this.howl.pause();
@@ -233,7 +254,7 @@ class AudioPlayer {
   }
 
   private async handleNext() {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.isLoading) return;
     
     try {
       const nextTrackUrl = await this.navigator.getNextTrack(this.currentTrackUrl);
@@ -246,7 +267,7 @@ class AudioPlayer {
   }
 
   private async handlePrevious() {
-    if (this.isTransitioning) return;
+    if (this.isTransitioning || this.isLoading) return;
     
     try {
       const prevTrackUrl = await this.navigator.getPreviousTrack(this.currentTrackUrl);
@@ -259,7 +280,7 @@ class AudioPlayer {
   }
 
   private handleProgressChange() {
-    if (this.howl && !this.isTransitioning && this.howl.duration) {
+    if (this.howl && !this.isTransitioning && !this.isLoading && this.howl.duration) {
       try {
         const seek = (this.ui.getProgressValue() / 100) * this.howl.duration();
         this.howl.seek(seek);
@@ -270,7 +291,7 @@ class AudioPlayer {
   }
 
   private updateProgress = debounce(() => {
-    if (this.howl && this.howl.playing && this.howl.playing() && !this.isTransitioning) {
+    if (this.howl && this.howl.playing && this.howl.playing() && !this.isTransitioning && !this.isLoading) {
       try {
         const pos = this.howl.seek();
         const dur = this.howl.duration();
@@ -315,6 +336,14 @@ class AudioPlayer {
   }
 
   private async loadNewTrack(trackUrl: string) {
+    // Prevent multiple simultaneous loads
+    if (this.isLoading) {
+      console.log('Already loading a track, skipping...');
+      return;
+    }
+
+    this.isLoading = true;
+    
     try {
       const blobUrl = await getAudioBlobUrl(trackUrl);
       const savedPosition = await loadPlaybackPosition(trackUrl);
@@ -332,6 +361,10 @@ class AudioPlayer {
         onload: () => {
           console.log('Track loaded successfully');
           this.isTransitioning = false;
+          this.isLoading = false;
+          
+          // Connect visualizer to the new Howl instance
+          this.connectVisualizerToHowl();
           
           // Restore playback position
           if (savedPosition !== null && this.howl) {
@@ -353,6 +386,7 @@ class AudioPlayer {
         onloaderror: (id: any, error: any) => {
           console.error('Error loading track:', error);
           this.isTransitioning = false;
+          this.isLoading = false;
         },
         onplay: () => {
           this.store.getState().setIsPlaying(true);
@@ -377,6 +411,7 @@ class AudioPlayer {
       this.currentTrackUrl = null;
       this.howl = null;
       this.isTransitioning = false;
+      this.isLoading = false;
     }
   }
 
@@ -400,7 +435,16 @@ class AudioPlayer {
 
   private subscribeToStore() {
     this.unsubscribe = this.store.subscribe(async (state) => {
+      // Only process if the current track actually changed
       if (state.currentTrack !== this.currentTrackUrl) {
+        console.log('Track changed from', this.currentTrackUrl, 'to', state.currentTrack);
+        
+        // Prevent multiple simultaneous track changes
+        if (this.isLoading) {
+          console.log('Already loading, ignoring track change');
+          return;
+        }
+
         await this.cleanupCurrentTrack();
         
         if (state.currentTrack) {
@@ -408,9 +452,15 @@ class AudioPlayer {
         } else {
           this.currentTrackUrl = null;
           this.isTransitioning = false;
+          this.isLoading = false;
         }
       }
     });
+  }
+
+  // Public method to get the current Howl instance
+  public getHowlInstance() {
+    return this.howl;
   }
 
   // Public method to cleanup when component unmounts
@@ -419,7 +469,9 @@ class AudioPlayer {
       this.unsubscribe();
       this.unsubscribe = null;
     }
-    this.cleanupCurrentTrack();
+    this.cleanupCurrentTrack().finally(() => {
+      this.isLoading = false;
+    });
   }
 }
 

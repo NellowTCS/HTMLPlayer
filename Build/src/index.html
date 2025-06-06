@@ -114,11 +114,11 @@
   <div id="processingPopup">Processing... 0/0</div>
   
   <!-- Settings Modal -->
-  <div id="settingsModal" class="modal hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div id="settingsModal" class="modal hidden fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-content" id="settingsContent">
       <!-- Dynamic settings content will be injected here -->
     </div>
-    <button id="closeSettings" aria-label="Close Settings">Close</button>
+    <button id="closeSettings" style="position: absolute; top: 100px; right: 300px; z-index: 100; color: #000000; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 1.7rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;" aria-label="Close Settings">🅇</button>
   </div>
 
   <!-- PLaylist Name Overlay -->
@@ -140,7 +140,7 @@
   </div>
 
   <!-- Settings Button -->
-  <button id="settingsBtn" style="position: absolute; bottom: 120px; right: 24px; z-index: 100; background: #2196F3; color: #fff; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 1.7rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;">Settings</button>
+  <button id="settingsBtn" style="position: absolute; bottom: 20px; right: 24px; z-index: 100; background: #2196F3; color: #fff; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 1.7rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;">⚙️</button>
 
   <!-- Visualizer Controls Modal -->
   <div id="visualizer-controls-modal" class="modal hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
@@ -149,7 +149,7 @@
     </div>
   </div>
   <!-- Add a button to open the modal -->
-  <button id="openVisualizerControls" style="position: absolute; bottom: 120px; right: 24px; z-index: 100; background: #2196F3; color: #fff; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 1.7rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;">🎨</button>
+  <button id="openVisualizerControls" style="position: absolute; bottom: 90px; right: 24px; z-index: 100; background: #2196F3; color: #fff; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 1.7rem; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center;">🎨</button>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script type="module" src="./main.ts"></script>

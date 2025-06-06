@@ -36,11 +36,12 @@ class VisualizerManager {
   private lastVisualizerType: VisualizerType = 'waveform';
   private isDestroyed = false;
   private resizeObserver: ResizeObserver | null = null;
-  private mediaElement: HTMLMediaElement | null = null;
-  private externalAudioNode: AudioNode | null = null;
+  private howlInstance: any = null;
   private waveformData: number[] = [];
   private currentTime = 0;
   private duration = 0;
+  private resizeTimeoutId: number | null = null;
+  private sourceNode: MediaElementAudioSourceNode | null = null;
 
   private readonly defaultSettings: VisualizerSettings = {
     type: 'waveform',
@@ -91,9 +92,18 @@ class VisualizerManager {
   private setupResizeObserver() {
     if (!this.container) return;
 
-    this.resizeObserver = new ResizeObserver(() => {
-      this.handleResize();
+    this.resizeObserver = new ResizeObserver((entries) => {
+      if (this.resizeTimeoutId) {
+        clearTimeout(this.resizeTimeoutId);
+      }
+      
+      this.resizeTimeoutId = window.setTimeout(() => {
+        requestAnimationFrame(() => {
+          this.handleResize();
+        });
+      }, 16);
     });
+    
     this.resizeObserver.observe(this.container);
   }
 
@@ -106,20 +116,22 @@ class VisualizerManager {
     if (!this.svg || !this.container) return;
     
     const rect = this.container.getBoundingClientRect();
-    this.svg
-      .attr('width', rect.width)
-      .attr('height', rect.height);
-  }
-
-  public async setAudioNode(audioNode: AudioNode) {
-    this.externalAudioNode = audioNode;
-    if (this.analyser) {
-      this.externalAudioNode.connect(this.analyser);
+    
+    const currentWidth = parseInt(this.svg.attr('width') as string) || 0;
+    const currentHeight = parseInt(this.svg.attr('height') as string) || 0;
+    
+    if (Math.abs(currentWidth - rect.width) > 1 || Math.abs(currentHeight - rect.height) > 1) {
+      this.svg
+        .attr('width', rect.width)
+        .attr('height', rect.height);
     }
   }
 
-  public setMediaElement(element: HTMLMediaElement) {
-    this.mediaElement = element;
+  // Method to connect Howl instance
+  public setHowlInstance(howl: any) {
+    console.log('Setting Howl instance for visualizer:', howl);
+    this.howlInstance = howl;
+    
     if (this.lastTrackUrl) {
       this.createVisualization(this.lastTrackUrl, this.currentSettings);
     }
@@ -148,8 +160,6 @@ class VisualizerManager {
       } else {
         await this.setupRealtimeVisualization(url);
       }
-      // Restore state after recreation only if we did a cleanup
-      await this.restorePlaybackState(playbackState);
     } else {
       // Just update visualization with new settings
       if (this.currentSettings.type === 'waveform') {
@@ -157,7 +167,6 @@ class VisualizerManager {
       } else if (this.analyser) {
         this.analyser.smoothingTimeConstant = Math.max(0, Math.min(1, this.currentSettings.smoothing));
         if (this.currentSettings.type !== 'spectrum') {
-          // Update FFT size for non-spectrum visualizations
           this.analyser.fftSize = Math.max(256, (this.currentSettings.barCount || 64) * 4);
           this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
         }
@@ -177,18 +186,10 @@ class VisualizerManager {
       this.waveformData = this.extractWaveformData(audioBuffer);
       this.duration = audioBuffer.duration;
 
-      // Create audio element for playback
-      const audio = new Audio(blobUrl);
-      audio.crossOrigin = 'anonymous';
-      (this.container as any).audioElement = audio;
-
-      // Setup audio events
-      this.setupAudioEvents(audio);
-
       // Render static waveform
       this.renderWaveform();
 
-      // Start progress tracking
+      // Start progress tracking with Howl
       this.startProgressTracking();
 
     } catch (error) {
@@ -208,7 +209,7 @@ class VisualizerManager {
   }
 
   private extractWaveformData(audioBuffer: AudioBuffer, samples = 1000): number[] {
-    const rawData = audioBuffer.getChannelData(0); // Get first channel
+    const rawData = audioBuffer.getChannelData(0);
     const blockSize = Math.floor(rawData.length / samples);
     const filteredData: number[] = [];
 
@@ -290,11 +291,20 @@ class VisualizerManager {
     const updateProgress = () => {
       if (this.isDestroyed) return;
 
-      const audioElement = (this.container as any)?.audioElement;
-      if (audioElement) {
-        this.currentTime = audioElement.currentTime;
-        this.updateWaveformProgress();
-        this.updateTimeDisplay();
+      if (this.howlInstance) {
+        try {
+          const seek = this.howlInstance.seek();
+          const duration = this.howlInstance.duration();
+          
+          if (typeof seek === 'number' && typeof duration === 'number') {
+            this.currentTime = seek;
+            this.duration = duration;
+            this.updateWaveformProgress();
+            this.updateTimeDisplay();
+          }
+        } catch (error) {
+          // Silently handle errors during tracking
+        }
       }
 
       requestAnimationFrame(updateProgress);
@@ -321,23 +331,34 @@ class VisualizerManager {
       const bufferLength = this.analyser.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
 
-      if (this.externalAudioNode) {
-        this.externalAudioNode.connect(this.analyser);
-        this.analyser.connect(this.audioContext.destination);
-      } else {
-        const blobUrl = await getAudioBlobUrl(url);
-        const audio = new Audio(blobUrl);
-        audio.crossOrigin = 'anonymous';
+      // Connect to Howl's audio node if available
+      if (this.howlInstance && this.howlInstance._sounds && this.howlInstance._sounds.length > 0) {
+        const sound = this.howlInstance._sounds[0];
         
-        const source = this.audioContext.createMediaElementSource(audio);
-        source.connect(this.analyser);
-        this.analyser.connect(this.audioContext.destination);
-
-        this.setupAudioEvents(audio);
-        (this.container as any).audioElement = audio;
+        // Try to get the audio node from Howl
+        if (sound._node) {
+          try {
+            // Create source node from Howl's audio element
+            this.sourceNode = this.audioContext.createMediaElementSource(sound._node);
+            this.sourceNode.connect(this.analyser);
+            this.analyser.connect(this.audioContext.destination);
+            
+            console.log('Connected to Howl audio node successfully');
+          } catch (error) {
+            console.warn('Could not connect to Howl audio node:', error);
+            // Fallback: create a silent source for visualization
+            this.createFallbackSource();
+          }
+        } else {
+          console.warn('Howl sound node not available, using fallback');
+          this.createFallbackSource();
+        }
+      } else {
+        console.warn('Howl instance not available, using fallback');
+        this.createFallbackSource();
       }
 
-      // Start animation
+      // Start animation if playing
       if (this.store.getState().isPlaying) {
         this.startAnimation();
       }
@@ -347,58 +368,46 @@ class VisualizerManager {
     }
   }
 
-  private setupAudioEvents(audio: HTMLAudioElement) {
-    audio.addEventListener('play', () => {
-      this.store.getState().setIsPlaying(true);
-      if (this.currentSettings.type !== 'waveform') {
-        this.startAnimation();
-      }
-    });
-
-    audio.addEventListener('pause', () => {
-      this.store.getState().setIsPlaying(false);
-      this.stopAnimation();
-    });
-
-    audio.addEventListener('timeupdate', () => {
-      this.currentTime = audio.currentTime;
-      this.duration = audio.duration || 0;
-      this.updateTimeDisplay();
-    });
-
-    audio.addEventListener('error', (e) => {
-      console.error('Audio element error:', e);
-      this.store.getState().setIsPlaying(false);
-    });
+  private createFallbackSource() {
+    if (!this.audioContext || !this.analyser) return;
+    
+    try {
+      // Create a simple oscillator as a fallback for visualization
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      
+      gainNode.gain.value = 0; // Silent
+      oscillator.frequency.value = 440;
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(this.analyser);
+      this.analyser.connect(this.audioContext.destination);
+      
+      oscillator.start();
+      
+      console.log('Created fallback audio source for visualization');
+    } catch (error) {
+      console.error('Error creating fallback source:', error);
+    }
   }
 
   private getCurrentPlaybackState() {
     let currentTime = 0;
     let wasPlaying = false;
 
-    const audioElement = (this.container as any)?.audioElement;
-    if (audioElement) {
-      currentTime = audioElement.currentTime || 0;
-      wasPlaying = !audioElement.paused;
+    if (this.howlInstance) {
+      try {
+        const seek = this.howlInstance.seek();
+        if (typeof seek === 'number') {
+          currentTime = seek;
+        }
+        wasPlaying = this.howlInstance.playing();
+      } catch (error) {
+        // Handle error silently
+      }
     }
 
     return { currentTime, wasPlaying };
-  }
-
-  private async restorePlaybackState(state: { currentTime: number; wasPlaying: boolean }) {
-    if (this.isDestroyed) return;
-
-    try {
-      const audioElement = (this.container as any)?.audioElement;
-      if (audioElement) {
-        audioElement.currentTime = state.currentTime;
-        if (state.wasPlaying) {
-          await audioElement.play();
-        }
-      }
-    } catch (error) {
-      console.warn('Error restoring playback state:', error);
-    }
   }
 
   private startAnimation() {
@@ -471,7 +480,6 @@ class VisualizerManager {
       .attr('width', barWidth - 2)
       .attr('height', d => d.height)
       .attr('fill', (d, i) => {
-        // Create gradient effect
         const intensity = d.value / 255;
         return d3.interpolateRgb(this.currentSettings.waveColor, this.currentSettings.progressColor)(intensity);
       });
@@ -682,20 +690,12 @@ class VisualizerManager {
   }
 
   private handlePlaybackStateChange(shouldPlay: boolean) {
-    try {
-      const audioElement = (this.container as any)?.audioElement;
-      if (audioElement) {
-        if (shouldPlay && audioElement.paused) {
-          audioElement.play().catch((error: any) => {
-            console.error('Error playing audio:', error);
-            this.store.getState().setIsPlaying(false);
-          });
-        } else if (!shouldPlay) {
-          audioElement.pause();
-        }
+    if (this.currentSettings.type !== 'waveform') {
+      if (shouldPlay && !this.animationId) {
+        this.startAnimation();
+      } else if (!shouldPlay) {
+        this.stopAnimation();
       }
-    } catch (error) {
-      console.error('Error controlling playback:', error);
     }
   }
 
@@ -720,7 +720,21 @@ class VisualizerManager {
 
     this.stopAnimation();
 
-    if (this.audioContext) {
+    if (this.resizeTimeoutId) {
+      clearTimeout(this.resizeTimeoutId);
+      this.resizeTimeoutId = null;
+    }
+
+    if (this.sourceNode) {
+      try {
+        this.sourceNode.disconnect();
+      } catch (error) {
+        console.warn('Error disconnecting source node:', error);
+      }
+      this.sourceNode = null;
+    }
+
+    if (this.audioContext && this.audioContext.state !== 'closed') {
       try {
         await this.audioContext.close();
       } catch (error) {
@@ -731,16 +745,6 @@ class VisualizerManager {
     
     this.analyser = null;
     this.dataArray = null;
-
-    if (this.container) {
-      const audioElement = (this.container as any)?.audioElement;
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
-        audioElement.load();
-        (this.container as any).audioElement = null;
-      }
-    }
 
     if (isDestroying && this.resizeObserver) {
       this.resizeObserver.disconnect();

@@ -432,7 +432,7 @@ class SettingsModal {
 
   private generateSettingsHTML(settings: Settings, cacheSize: string): string {
     return `
-      <div class="settings-section max-w-2xl mx-auto p-6 space-y-8 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" border-radius: 10px 5% / 20px 25em 30px 35em;" role="tabpanel" aria-labelledby="settings-title">
+      <div class="settings-section max-w-2xl mx-auto p-6 pb-12 space-y-8 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700" border-radius: 10px 5% / 20px 25em 30px 35em;" role="tabpanel" aria-labelledby="settings-title">
         <div class="border-b border-gray-200 dark:border-gray-700 pb-4">
           <h2 id="settings-title" class="text-2xl font-bold text-gray-900 dark:text-white">Settings</h2>
           <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Customize your experience</p>

@@ -34,6 +34,7 @@ const useStore = create<AppState>((set) => ({
 }));
 
 async function initApp() {
+  // Initialize visualizer first
   const visualizerInstance = initVisualizer(useStore);
   if (visualizerInstance) {
     useStore.getState().setVisualizer({
@@ -42,11 +43,20 @@ async function initApp() {
     });
   }
   
+  // Initialize other components
   initUI(useStore);
-  initPlayer(useStore);
   initSettings(useStore);
   initPlaylists(useStore);
   initTracks(useStore);
+  
+  // Initialize player after visualizer
+  const playerInstance = initPlayer(useStore);
+  
+  // Connect player and visualizer if both exist
+  if (playerInstance && visualizerInstance && typeof playerInstance.setVisualizerInstance === 'function') {
+    playerInstance.setVisualizerInstance(visualizerInstance);
+  }
+  
   setupAddMusicButton();
 
   document.addEventListener('keydown', (e) => {
