@@ -1,70 +1,214 @@
 import { create } from 'zustand';
 import { initPlayer } from './player';
 import { initSettings } from './settings';
-import { initVisualizer, VisualizerSettings, VisualizerType } from './visualizer';
 import { initPlaylists } from './playlists';
 import { initTracks } from './tracks';
 import { initUI } from './ui';
-
-interface VisualizerInstance {
-  setVisualizerType: (type: VisualizerType) => void;
-  updateSettings: (settings: Partial<VisualizerSettings>) => void;
-}
+import { VisualizerManager } from './visualizerManager';
 
 export interface AppState {
   currentTrack: string | null;
   isPlaying: boolean;
   theme: string;
-  visualizer: VisualizerInstance | null;
   setCurrentTrack: (track: string | null) => void;
   setIsPlaying: (playing: boolean) => void;
   setTheme: (theme: string) => void;
-  setVisualizer: (visualizer: VisualizerInstance) => void;
 }
 
 const useStore = create<AppState>((set) => ({
   currentTrack: null,
   isPlaying: false,
   theme: 'default',
-  visualizer: null,
   setCurrentTrack: (track) => set({ currentTrack: track }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setTheme: (theme) => set({ theme }),
-  setVisualizer: (visualizer) => set({ visualizer }),
 }));
 
-async function initApp() {
-  // Initialize visualizer first
-  const visualizerInstance = initVisualizer(useStore);
-  if (visualizerInstance) {
-    useStore.getState().setVisualizer({
-      setVisualizerType: visualizerInstance.setVisualizerType,
-      updateSettings: visualizerInstance.updateSettings
-    });
+// Enhanced visualizer wrapper to work with Howl.js
+class HowlVisualizerAdapter {
+  private visualizerManager: any = null; // VisualizerManager instance
+  private howlInstance: any = null;
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private source: MediaElementAudioSourceNode | null = null;
+
+  constructor(canvasContainer: HTMLElement) {
+    // We'll initialize the visualizer manager when we get a Howl instance
+    this.setupCanvasContainer(canvasContainer);
   }
-  
-  // Initialize other components
+
+  private setupCanvasContainer(container: HTMLElement) {
+    // Ensure container has proper styling for visualizer
+    if (!container.style.position) {
+      container.style.position = 'relative';
+    }
+  }
+
+  public setHowlInstance(howl: any) {
+    this.howlInstance = howl;
+    this.setupVisualizerConnection();
+  }
+
+  public setupVisualizerConnection() {
+    if (!this.howlInstance) return;
+
+    try {
+      // Get the underlying HTML audio element from Howl
+      const audioElement = this.getAudioElementFromHowl();
+      
+      if (audioElement && !this.visualizerManager) {
+        const canvasContainer = document.getElementById('visualizer-container');
+        if (canvasContainer) {
+          // Now we can create the VisualizerManager with the audio element
+          this.visualizerManager = new VisualizerManager(audioElement, canvasContainer);
+          console.log('Visualizer manager would be created here with audio element');
+          
+          // For now, let's set up Web Audio API connection manually
+          // this.setupWebAudioConnection(audioElement);
+        }
+      }
+    } catch (error) {
+      console.error('Error setting up visualizer connection:', error);
+    }
+  }
+
+  private getAudioElementFromHowl(): HTMLAudioElement | null {
+    try {
+      // Access the internal HTML audio element from Howl
+      if (this.howlInstance && this.howlInstance._sounds && this.howlInstance._sounds[0]) {
+        return this.howlInstance._sounds[0]._node;
+      }
+    } catch (error) {
+      console.error('Error accessing audio element from Howl:', error);
+    }
+    return null;
+  }
+
+  private setupWebAudioConnection(audioElement: HTMLAudioElement) {
+    try {
+      // Use Howler's existing audio context if available
+      this.audioContext = (window as any).Howler?.ctx || new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      if (!this.analyser) {
+        if (!this.audioContext) {
+          console.error('AudioContext is not available');
+          return;
+        }
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 2048;
+        
+        // Create source from audio element
+        this.source = this.audioContext.createMediaElementSource(audioElement);
+        this.source.connect(this.analyser);
+        this.analyser.connect(this.audioContext.destination);
+        
+        console.log('Web Audio API connection established for visualizer');
+      }
+    } catch (error) {
+      console.error('Error setting up Web Audio API:', error);
+    }
+  }
+
+  public setVisualizerType(type: string) {
+    if (this.visualizerManager) {
+      this.visualizerManager.addVisualizer(type);
+    } else {
+      console.warn('Visualizer manager not initialized yet');
+    }
+  }
+
+  public updateSettings(settings: any) {
+    // Handle visualizer settings updates
+    console.log('Updating visualizer settings:', settings);
+  }
+
+  public getAnalyserNode(): AnalyserNode | null {
+    return this.analyser;
+  }
+
+  public getAudioContext(): AudioContext | null {
+    return this.audioContext;
+  }
+
+  public destroy() {
+    if (this.visualizerManager) {
+      // Clean up visualizer manager
+      this.visualizerManager = null;
+    }
+    
+    if (this.source) {
+      this.source.disconnect();
+      this.source = null;
+    }
+    
+    if (this.analyser) {
+      this.analyser.disconnect();
+      this.analyser = null;
+    }
+  }
+}
+
+async function initApp() {
+  // Initialize other components first
   initUI(useStore);
   initSettings(useStore);
   initPlaylists(useStore);
   initTracks(useStore);
   
-  // Initialize player after visualizer
+  // Initialize player
   const playerInstance = initPlayer(useStore);
   
-  // Connect player and visualizer if both exist
-  if (playerInstance && visualizerInstance && typeof playerInstance.setVisualizerInstance === 'function') {
-    playerInstance.setVisualizerInstance(visualizerInstance);
+  // Initialize visualizer adapter
+  const visualizerContainer = document.getElementById('visualizer-container');
+  if (visualizerContainer && playerInstance) {
+    const visualizerAdapter = new HowlVisualizerAdapter(visualizerContainer);
+    
+    // Connect the visualizer adapter to the player
+    if (typeof playerInstance.setVisualizerInstance === 'function') {
+      playerInstance.setVisualizerInstance(visualizerAdapter);
+      console.log('Visualizer adapter connected to audio player');
+    }
+    
+    // Set up visualizer controls
+    setupVisualizerControls(visualizerAdapter);
   }
   
   setupAddMusicButton();
 
+  // Keyboard controls
   document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space') {
+    if (e.code === 'Space' && e.target === document.body) {
       e.preventDefault();
-      const store = useStore.getState();
-      store.setIsPlaying(!store.isPlaying);
+      const playPauseBtn = document.getElementById('playPauseBtn');
+      if (playPauseBtn) {
+        playPauseBtn.click();
+      }
     }
+  });
+  
+  // Handle window resize for visualizer
+  window.addEventListener('resize', () => {
+    // If you have a visualizer manager, call its resize method
+    // visualizerManager?.resizeCanvas();
+  });
+}
+
+function setupVisualizerControls(visualizerAdapter: HowlVisualizerAdapter) {
+  // Example: Add buttons to switch visualizer types
+  const visualizerButtons = document.querySelectorAll('[data-visualizer-type]');
+  
+  visualizerButtons.forEach(button => {
+    button.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      const type = target.dataset.visualizerType;
+      if (type) {
+        visualizerAdapter.setVisualizerType(type);
+        
+        // Update button states
+        visualizerButtons.forEach(btn => btn.classList.remove('active'));
+        target.classList.add('active');
+      }
+    });
   });
 }
 
@@ -78,26 +222,20 @@ function setupAddMusicButton() {
   uploadBtn.addEventListener('click', async () => {
     if ('showDirectoryPicker' in window) {
       try {
-        // @ts-ignore
         const dirHandle = await (window as any).showDirectoryPicker();
-        // Dispatch a custom event or call a handler to process the directory
         const event = new CustomEvent('music-directory-selected', { detail: dirHandle });
         window.dispatchEvent(event);
       } catch (e) {
-        // User cancelled or error, fallback to file input
         fileInput.click();
       }
     } else {
       console.warn('Directory picker not supported, falling back to file input');
-      // Fallback for browsers that don't support directory picker
-      // Ensure file input accepts multiple files and audio types
       fileInput.setAttribute('multiple', 'true');
       fileInput.setAttribute('accept', 'audio/*');
-      // Trigger file input click
       fileInput.click();
     }
   });
 }
 
-// Call this in initApp
+// Initialize the app
 initApp();

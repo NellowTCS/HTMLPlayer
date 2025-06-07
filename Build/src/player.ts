@@ -13,7 +13,9 @@ import {
 declare global {
   interface Window {
     Howl: any;
-    Howler: any;
+    Howler?: any | {
+      ctx?: AudioContext;
+    };
   }
 }
 
@@ -461,6 +463,13 @@ class AudioPlayer {
   // Public method to get the current Howl instance
   public getHowlInstance() {
     return this.howl;
+  }
+
+  public getAudioElement() {
+    if (this.howl && this.howl._sounds && this.howl._sounds[0]) {
+      return this.howl._sounds[0]._node; // Returns the HTML audio element
+    }
+    return null;
   }
 
   // Public method to cleanup when component unmounts

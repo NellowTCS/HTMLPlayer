@@ -2,7 +2,7 @@ import { StoreApi, UseBoundStore } from 'zustand';
 import { AppState } from './main';
 import { debounce } from 'lodash';
 import VisualizerControls from './visualizerControls';
-import { VisualizerType } from './visualizer';
+import { VisualizerType } from './visualizerManager';
 
 export function initUI(store: UseBoundStore<StoreApi<AppState>>) {
   // Cache DOM elements
