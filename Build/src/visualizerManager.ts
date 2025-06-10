@@ -1,6 +1,7 @@
 // TypeScript VisualizerManager for Audio Visualization
 
-import { spectrogramTypes } from './visualizers';
+import { time } from "console";
+import { spectrogramTypes } from "./visualizers";
 
 interface HowlInstance {
   play(): void;
@@ -11,9 +12,11 @@ interface HowlInstance {
 
 declare global {
   interface Window {
-    Howler?: any | {
-      ctx?: AudioContext;
-    };
+    Howler?:
+      | any
+      | {
+          ctx?: AudioContext;
+        };
   }
 }
 
@@ -29,7 +32,10 @@ export class VisualizerManager {
   public animationFrame: number | null = null;
   public isHowlSource: boolean = false;
 
-  constructor(audioSource: HTMLAudioElement | HowlInstance, canvasContainer: HTMLElement) {
+  constructor(
+    audioSource: HTMLAudioElement | HowlInstance,
+    canvasContainer: HTMLElement
+  ) {
     this.audioSource = audioSource;
     this.canvasContainer = canvasContainer;
   }
@@ -37,9 +43,11 @@ export class VisualizerManager {
   initialize(): void {
     if (!this.audioContext) {
       // Check if we're working with Howl.js or HTML audio element
-      this.isHowlSource = this.audioSource && typeof this.audioSource.play === 'function' && 
-        ('_sounds' in this.audioSource);
-      
+      this.isHowlSource =
+        this.audioSource &&
+        typeof this.audioSource.play === "function" &&
+        "_sounds" in this.audioSource;
+
       if (this.isHowlSource) {
         this.initializeWithHowl();
       } else {
@@ -51,12 +59,14 @@ export class VisualizerManager {
   initializeWithHowl(): void {
     try {
       // Use Howler's audio context if available
-      this.audioContext = window.Howler?.ctx || new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext =
+        window.Howler?.ctx ||
+        new (window.AudioContext || (window as any).webkitAudioContext)();
       if (!this.audioContext) {
-        throw new Error('AudioContext could not be created');
+        throw new Error("AudioContext could not be created");
       }
       this.analyser = this.audioContext.createAnalyser();
-      
+
       // Get the underlying HTML audio element from Howl
       const audioElement = this.getAudioElementFromHowl();
       if (audioElement) {
@@ -64,26 +74,29 @@ export class VisualizerManager {
         source.connect(this.analyser);
         this.analyser.connect(this.audioContext.destination);
         this.analyser.fftSize = 2048;
-        console.log('Visualizer initialized with Howl.js audio source');
+        console.log("Visualizer initialized with Howl.js audio source");
       } else {
-        throw new Error('Could not access audio element from Howl instance');
+        throw new Error("Could not access audio element from Howl instance");
       }
     } catch (error) {
-      console.error('Error initializing visualizer with Howl:', error);
+      console.error("Error initializing visualizer with Howl:", error);
     }
   }
 
   initializeWithAudioElement(): void {
     try {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      this.audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
       this.analyser = this.audioContext.createAnalyser();
-      const source = this.audioContext.createMediaElementSource(this.audioSource as HTMLAudioElement);
+      const source = this.audioContext.createMediaElementSource(
+        this.audioSource as HTMLAudioElement
+      );
       source.connect(this.analyser);
       this.analyser.connect(this.audioContext.destination);
       this.analyser.fftSize = 2048;
-      console.log('Visualizer initialized with HTML audio element');
+      console.log("Visualizer initialized with HTML audio element");
     } catch (error) {
-      console.error('Error initializing visualizer with audio element:', error);
+      console.error("Error initializing visualizer with audio element:", error);
     }
   }
 
@@ -94,18 +107,18 @@ export class VisualizerManager {
         return howlSource._sounds[0]._node || null;
       }
     } catch (error) {
-      console.error('Error accessing audio element from Howl:', error);
+      console.error("Error accessing audio element from Howl:", error);
     }
     return null;
   }
 
   createCanvas(): HTMLCanvasElement {
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = this.canvasContainer.clientWidth;
     canvas.height = this.canvasContainer.clientHeight;
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
+    canvas.style.position = "absolute";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
     this.canvasContainer.appendChild(canvas);
     return canvas;
   }
@@ -117,7 +130,7 @@ export class VisualizerManager {
     }
 
     this.initialize();
-    
+
     // Remove existing visualizer if any
     if (this.activeVisualizer) {
       this.removeVisualizer(this.activeVisualizer);
@@ -126,18 +139,18 @@ export class VisualizerManager {
     // Create new canvas if needed
     if (!this.canvas) {
       this.canvas = this.createCanvas();
-      this.context = this.canvas.getContext('2d');
+      this.context = this.canvas.getContext("2d");
     }
 
     this.activeVisualizer = type;
     if (!this.animationFrame) this.startAnimation();
-    
+
     console.log(`Visualizer '${type}' activated`);
   }
 
   removeVisualizer(type: string): void {
     if (this.activeVisualizer !== type) return;
-    
+
     if (this.canvas) {
       this.canvas.remove();
       this.canvas = null;
@@ -146,13 +159,13 @@ export class VisualizerManager {
 
     this.activeVisualizer = null;
     this.stopAnimation();
-    
+
     console.log(`Visualizer '${type}' removed`);
   }
 
   startAnimation(): void {
     if (!this.analyser) {
-      console.warn('Analyser not initialized, cannot start animation');
+      console.warn("Analyser not initialized, cannot start animation");
       return;
     }
 
@@ -162,7 +175,7 @@ export class VisualizerManager {
 
     const animate = (): void => {
       this.animationFrame = requestAnimationFrame(animate);
-      
+
       if (!this.activeVisualizer || !this.canvas || !this.context) {
         return;
       }
@@ -171,19 +184,36 @@ export class VisualizerManager {
       if (visualizer && visualizer.draw) {
         try {
           // Get the appropriate data array based on visualizer type
-          if (this.activeVisualizer === 'oscilloscope' || this.activeVisualizer === 'waveform') {
+          if (
+            this.activeVisualizer === "oscilloscope" ||
+            this.activeVisualizer === "waveform"
+          ) {
             this.analyser!.getByteTimeDomainData(timeDataArray);
-            visualizer.draw(this.analyser!, this.canvas, this.context, bufferLength, timeDataArray);
+            visualizer.draw(
+              this.analyser!,
+              this.canvas,
+              this.context,
+              bufferLength,
+              timeDataArray,
+              "time"
+            );
           } else {
             this.analyser!.getByteFrequencyData(freqDataArray);
-            visualizer.draw(this.analyser!, this.canvas, this.context, bufferLength, freqDataArray);
+            visualizer.draw(
+              this.analyser!,
+              this.canvas,
+              this.context,
+              bufferLength,
+              freqDataArray,
+              "frequency"
+            );
           }
         } catch (error) {
-          console.error('Error in visualizer draw function:', error);
+          console.error("Error in visualizer draw function:", error);
         }
       }
     };
-    
+
     animate();
   }
 
@@ -204,7 +234,7 @@ export class VisualizerManager {
   // Method to update the audio source (useful when tracks change)
   updateAudioSource(newAudioSource: HTMLAudioElement | HowlInstance): void {
     this.audioSource = newAudioSource;
-    
+
     // Re-initialize if we have an active visualizer
     if (this.activeVisualizer) {
       const currentType = this.activeVisualizer;
@@ -221,19 +251,19 @@ export class VisualizerManager {
 
   destroy(): void {
     this.stopAnimation();
-    
+
     if (this.canvas) {
       this.canvas.remove();
       this.canvas = null;
       this.context = null;
     }
-    
+
     if (this.analyser) {
       this.analyser.disconnect();
       this.analyser = null;
     }
-    
+
     this.activeVisualizer = null;
-    console.log('VisualizerManager destroyed');
+    console.log("VisualizerManager destroyed");
   }
 }
