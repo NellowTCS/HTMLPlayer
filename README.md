@@ -1,5 +1,19 @@
 # HTMLPlayer
-
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+HTMLPlayer has a new home!
+(Don't worry, it wasn't sold or anything)
+https://github.com/HTMLToolkit/HTMLPlayer
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
 ## Overview
 This is an HTML5 audio player that supports playlists, ID3 tag parsing for album and track art, and custom playlist art. It uses IndexedDB for persistence and the File API to get your music, allowing users to manage their music library locally. The player is designed with a clean and modern interface, featuring drag-and-drop reordering, rating buttons, and an 'Add Music' button for adding individual files (on Safari) or selecting directories.
 
